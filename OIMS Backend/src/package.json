@@ -1,0 +1,31 @@
+{
+   "name": "wahs_03_booknet",
+   "version": "1.0.0",
+   "description": "Backend web service of the Booknet web application",
+   "main": "index.mjs",
+   "type": "module",
+   "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1",
+      "start": "node ./src/server.mjs",
+      "dev": "nodemon ./src/server.mjs",
+      "seed": "node ./prisma/seed.mjs"
+   },
+   "author": "wahs_01",
+   "license": "ISC",
+   "devDependencies": {
+      "nodemon": "^3.1.10",
+      "prisma": "^6.15.0"
+   },
+   "dependencies": {
+      "@prisma/client": "^6.15.0",
+      "bcrypt": "^6.0.0",
+      "cookie-parser": "^1.4.7",
+      "cors": "^2.8.5",
+      "dotenv": "^17.2.1",
+      "express": "^5.1.0",
+      "express-validator": "^7.2.1",
+      "jsonwebtoken": "^9.0.2",
+      "multer": "^2.0.2",
+      "nodemailer": "^7.0.6"
+   }
+}
