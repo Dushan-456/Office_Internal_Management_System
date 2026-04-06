@@ -1,30 +1,34 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import Error403Page from "../pages/Error403Page";
+import useAuthStore from "../store/useAuthStore";
+import { CircularProgress, Box } from "@mui/material";
 
 const ProtectedRouter = ({ ProtectedRole }) => {
-  // user and authentication status from the global context
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuthStore();
   const location = useLocation();
 
-  // Check if the user is authenticated
-  if (!isAuthenticated) {
-    // If not, redirect them to the login page
-    // Save the route user wanted
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check for role-based access if a 'ProtectedRole' is required
-  // An 'ADMIN' can access any protected route.
-  const isAuthorized = user.role === "ADMIN" || user.role === ProtectedRole;
-
-  if (ProtectedRole && !isAuthorized) {
-    // If a role is required and the user is not an admin or doesn't have the role
-    return <Error403Page />;
+  // If a specific role is required, check it (ADMIN always has access)
+  if (ProtectedRole && user.role !== "ADMIN" && user.role !== ProtectedRole) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ fontSize: '4rem' }}>🚫</Box>
+        <Box sx={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#334155' }}>Access Denied</Box>
+        <Box sx={{ color: '#64748b' }}>You don't have permission to access this page.</Box>
+      </Box>
+    );
   }
 
-  //  If the user is authenticated and has the correct role (or no role is required),
-  // render the child component
   return <Outlet />;
 };
 
