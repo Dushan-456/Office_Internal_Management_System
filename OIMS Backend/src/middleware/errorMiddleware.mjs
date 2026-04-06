@@ -1,28 +1,22 @@
-// Centralized error handling middleware
-
-
-// General error handler
-// eslint-disable-next-line no-unused-vars
 export const errorHandler = (err, req, res, next) => {
-  // Multer errors may be thrown in upload flows
-  if (err && err.name === "MulterError") {
-    return res.status(400).json({
-      success: false,
-      message: "File upload failed",
-      error: err.message,
-      code: err.code,
-    });
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || 'error';
+
+  let error = { ...err };
+  error.message = err.message;
+
+  // Handle Prisma generic errors (simplified for this scope)
+  if (err.code === 'P2002') {
+    const target = err.meta?.target || 'field';
+    error.statusCode = 400;
+    error.message = `Duplicate field value entered for ${target}. Please use another value!`;
   }
 
-  const status = err.statusCode || err.status || 500;
-  const message = err.message || "Internal Server Error";
-
-  // Avoid leaking stack traces in production
-  const includeStack = process.env.NODE_ENV !== "production";
-
-  res.status(status).json({
+  // Handle express-validator errors logic if tossed down, though usually handled inline.
+  // Standard response
+  res.status(error.statusCode).json({
     success: false,
-    message,
-    ...(includeStack ? { stack: err.stack } : {}),
+    message: error.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 };
