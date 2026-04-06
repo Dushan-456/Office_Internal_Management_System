@@ -3,7 +3,7 @@ import {authenticateToken,authorizeRole} from "../middleware/authMiddleware.mjs"
 import profileControllers from "../controllers/profileControllers.mjs";
 import { forgotEmailValidator, loginValidator, ProfileFieldsValidator, RegisterValidator, resetPasswordValidate } from "../middleware/validationMethods.mjs";
 import userControllers from "../controllers/userControllers.mjs";
-import { Role } from '../generated/prisma/index.js'; 
+import { Role } from '@prisma/client'; 
 
 
 const userRoutes = Router();
