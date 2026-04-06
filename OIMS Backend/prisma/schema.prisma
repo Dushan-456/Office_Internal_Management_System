@@ -6,267 +6,201 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
-// ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// ENUMS (Predefined sets of values)
-// ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-enum Role {
-  CUSTOMER
-  ADMIN
-  DELIVERY
-  STAFF 
+// Identity
+enum EmployeeType {
+  Assignment_Basis
+  Probation
+  Contract
+  Temporary
+  Permanent
 }
 
-enum ProductType {
-  BOOK
-  EBOOK
-  STATIONERY
+enum Department {
+  Academic
+  Finance
+  MERC
+  Computer
+  General_Administration
+  Examination
+  Library
 }
 
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  REFUNDED
+enum JobCategory {
+  Administrative_and_Finance
+  Academic_Support
+  Primary_Level
+  Academic
+  Clerical_and_Allied
+  Technical
 }
 
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
+enum Grade {
+  Grade_I
+  Grade_II
+  Grade_III
+  NA
 }
 
-enum ServiceType {
-  PRINTING
-  TYPING
-  EDITING
-  PHOTOCOPY
-  OTHER
+enum Qualification {
+  GCE_OL
+  GCE_AL
+  Diploma
+  Higher_Diploma
+  Professional_Qualification
+  Degree
+  Masters
+  PHD
 }
 
-enum ServiceStatus {
-  SUBMITTED
-  IN_PROGRESS
-  READY
-  DISPATCHED
-  DELIVERED
-  CANCELLED
+enum SystemRole {
+  Admin
+  Department_Head
+  Employee
 }
 
-enum DeliveryStatus {
-     PENDING
-      PROCESSING
-      SHIPPED
-      DELIVERED
-      CANCELLED
-      REFUNDED
-}
-
-// -----------------------------------------------------------------------------------------------------------------------------------------------------------
-// MODELS (Database tables)
-// -----------------------------------------------------------------------------------------------------------------------------------------------------------
-
-// USERS table-----------------------------------------------------------------------------------------------------------------------------------------------
 model User {
-  id           String   @id @default(cuid()) // Unique user ID
-  firstName    String
-  lastName     String
-  email        String   @unique // Unique email
-  username     String   @unique // Unique username
-  passwordHash String   // Hashed password
-  role         Role     @default(CUSTOMER) // Default role = customer
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  passwordResetToken    String?     @unique
-  passwordResetExpires  DateTime?
-
+  id              String   @id @default(uuid())
+  
+  // Identity
+  employeeNo      String   @unique
+  epfNo           String?  @unique
+  fingerPrintId   String?  @unique
+  nicNo           String   @unique
+  email           String   @unique
+  password        String
+  
+  // Personal
+  firstName       String
+  lastName        String
+  maritalStatus   String?
+  gender          String?
+  dateOfBirth     DateTime?
+  nationality     String?
+  address         String?
+  district        String?
+  mobileNo        String?
+  
+  // Employment
+  dateJoined      DateTime
+  employeeType    EmployeeType
+  department      Department
+  jobCategory     JobCategory
+  jobTitle        JobTitle
+  grade           Grade @default(NA)
+  qualification   Qualification
+  systemRole      SystemRole @default(Employee)
+  
   // Relations
-  Profile            Profile?
-  carts              Cart[]
-  orders             Order[]
-  serviceOrders      ServiceOrder[]  
-  deliveriesAssigned Delivery[]     @relation("DeliveryAssigned") // Deliveries assigned to user
-  servicesAssigned   ServiceOrder[] @relation("ServiceAssigned")  // Services assigned to user
+  leavesAsEmployee          LeaveRequest[] @relation("Applicant")
+  leavesAsActingOfficer     LeaveRequest[] @relation("ActingOfficer")
+  leavesAsApproveOfficer    LeaveRequest[] @relation("ApproveOfficer")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
-// USER PROFILE (optional details for user) -----------------------------------------------------------------------------------------------------------------------------------------------
-model Profile {
-  id          String    @id @default(cuid())
-  image       String?
-  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String    @unique // One-to-one relation with User
-  dob         DateTime?
-  gender      String?
-  designation String?
-  mobile      String?
-  address     String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+enum JobTitle {
+  Assistant_Bursar
+  Clerk
+  Course_Coordinator
+  Computer_programmer
+  Deputy_Bursar
+  Lab_Attendant
+  Assistant_Librarian
+  Computer_Application_Assistant
+  Deputy_Registrar
+  Electrician
+  Laborer___Works_aid
+  Assistant_Registrar
+  Computer_Programmer_cum_System_Analyst
+  Cycle_Orderly
+  Driver
+  Lecturer
+  Library_Assistant
+  Management_Assistant
+  Receptionist
+  Senior_Assistant_Registrar
+  Senior_Technical_Officer
+  Technical_Officer
+  Work_Superintendent
+  Office_Machine_Operator
+  Senior_Assistant_Bursar
+  Senior_Lecturer
+  Staff_Assistant
+  Trainee_Technical_Officer
+  Office_Assistant
+  Senior_Assistant_Librarian
+  Senior_Staff_Assistant
+  Stenographer
+  Work_Supervisor
+  Programme_Assistant
+  Research_Assistant
 }
 
-// PRODUCT CATEGORIES-----------------------------------------------------------------------------------------------------------------------------------------------
-model Category {
-  id       String     @id @default(cuid())
-  name     String     @unique
-  image    String?
-  products Product[]  // One-to-many with Products
+enum LeaveType {
+  Casual
+  Vacation
+  Medical
+  No_Pay
+  Study
+  Sabbatical
+  Maternity
+  Paternal
+  Duty
+  Lieu
+  Special
+  Other
 }
 
-// PRODUCTS (Items in store) -----------------------------------------------------------------------------------------------------------------------------------------------
-model Product {
-  id          String      @id @default(cuid())
-  title       String
-  description String?
-  price       Decimal     @db.Decimal(10, 2) // Standard price
-  salePrice   Decimal?    @db.Decimal(10, 2) // Discounted price
-  type        ProductType
-  stock       Int         @default(0) // Inventory stock
-  sku         String      @unique // Stock Keeping Unit
-  isDigital   Boolean     @default(false) // For ebooks, etc.
-  downloadUrl String?
-  categoryId  String?
-  images      ProductImage[] // Related images
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Relations
-  orderItems OrderItem[]
-  cartItems  CartItem[]
+enum LeaveCategory {
+  Full_Day
+  Half_Day
 }
 
-// PRODUCT IMAGES (multiple per product)-----------------------------------------------------------------------------------------------------------------------------------------------
-model ProductImage {
-  id        String   @id @default(cuid())
-  url       String
-  altText   String?
-  isPrimary Boolean  @default(false) // Main image
-  productId String
-  product   Product  @relation(fields: [productId], references: [id],onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum LeaveStatus {
+  Pending_Acting
+  Pending_Approval
+  Approved
+  Rejected
 }
 
-// CART (one per user or guest)-----------------------------------------------------------------------------------------------------------------------------------------------
-model Cart {
-  id        String     @id @default(cuid())
-  guestId   String?    @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  userId    String?    @unique
-  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
+model LeaveRequest {
+  id              String   @id @default(uuid())
+  
+  leaveType       LeaveType
+  category        LeaveCategory
+  startDate       DateTime
+  endDate         DateTime
+  reason          String @db.Text
+  addressOnLeave  String? @db.Text
+  attachmentUrl   String? // File path
+  
+  status          LeaveStatus @default(Pending_Acting)
+  totalDays       Float
+  
+  applicantId     String
+  applicant       User @relation("Applicant", fields: [applicantId], references: [id])
+  
+  actingOfficerId   String?
+  actingOfficer     User? @relation("ActingOfficer", fields: [actingOfficerId], references: [id])
+  
+  approveOfficerId  String?
+  approveOfficer    User? @relation("ApproveOfficer", fields: [approveOfficerId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
-// CART ITEMS (products added to cart)-----------------------------------------------------------------------------------------------------------------------------------------------
-model CartItem {
-  id        String  @id @default(cuid())
-  cartId    String
-  productId String
-  quantity  Int
-  unitPrice Decimal @db.Decimal(10, 2)
-
-  //  onDelete: Cascade to the relation
-  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
-
-  @@unique([cartId, productId])
+model Attendance {
+  id              String   @id @default(uuid())
+  employeeNo      String
+  employeeName    String?
+  date            DateTime
+  checkIn         String
+  checkOut        String
+  status          String
+  createdAt       DateTime @default(now())
 }
-
-// ORDERS (placed by users)-----------------------------------------------------------------------------------------------------------------------------------------------
-model Order {
-  id              String        @id @default(cuid())
-  userId          String
-  status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(PENDING)
-  total           Decimal       @db.Decimal(10, 2)
-  paymentProvider String?
-  paymentIntentId String?
-  shippingName    String?
-  shippingPhone   String?
-  shippingLine1   String?
-  shippingLine2   String?
-  shippingCity    String?
-  shippingPostal  String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  // Relations
-  user     User        @relation(fields: [userId], references: [id],onDelete: Cascade)
-  items    OrderItem[]
-  delivery Delivery?
-  payment  Payment?
-}
-
-// ORDER ITEMS (products in an order)-----------------------------------------------------------------------------------------------------------------------------------------------
-model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  unitPrice Decimal @db.Decimal(10, 2)
-
-  order   Order   @relation(fields: [orderId], references: [id] ,onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-}
-
-// PAYMENTS (can belong to an Order OR ServiceOrder)-----------------------------------------------------------------------------------------------------------------------------------------------
-model Payment {
-  id            String        @id @default(cuid())
-  amount        Decimal       @db.Decimal(10, 2)
-  provider      String
-  status        PaymentStatus
-  transactionId String?
-
-  orderId        String? @unique
-  order          Order?  @relation(fields: [orderId], references: [id] ,onDelete: Cascade)
-  serviceOrderId String? @unique
-  serviceOrder   ServiceOrder? @relation(fields: [serviceOrderId], references: [id])
-}
-
-// SERVICE ORDERS (like printing, typing, etc.)-----------------------------------------------------------------------------------------------------------------------------------------------
-model ServiceOrder {
-  id              String        @id @default(cuid())
-  userId          String?       // Registered user
-  guestName       String?       // Or guest name
-  guestContact    String?       
-  type            ServiceType
-  details         String?         
-  files           String[]        // File upload link
-  status          ServiceStatus @default(SUBMITTED)
-  price           Decimal       @default(0) @db.Decimal(10, 2)
-  assignedStaffId String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  // Relations
-  user          User?    @relation(fields: [userId], references: [id] ,onDelete: Cascade)
-  assignedStaff User?    @relation("ServiceAssigned", fields: [assignedStaffId], references: [id])
-  delivery      Delivery?
-  payment       Payment?
-}
-
-// DELIVERIES (for Orders or ServiceOrders)-----------------------------------------------------------------------------------------------------------------------------------------------
-model Delivery {
-  id              String         @id @default(cuid())
-  trackingCode    String         @unique // Tracking code
-  status          DeliveryStatus @default(PENDING)
-  assignedStaffId String?
-  updatedAt       DateTime       @updatedAt
-  createdAt       DateTime       @default(now())
-
-  // Relations
-  orderId        String? @unique
-  serviceOrderId String? @unique
-  order        Order?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
-  assignedTo   User?         @relation("DeliveryAssigned", fields: [assignedStaffId], references: [id])
-}
-
-
