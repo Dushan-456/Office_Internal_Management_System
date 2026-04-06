@@ -9,7 +9,6 @@ rootRouter.get("/", (req, res) => res.sendStatus(200));
 
 // Mount feature routers
 // rootRouter.use("/users", userRoutes);           // User-related routes
-// rootRouter.use("/categories", categoryRoutes);  // Category-related routes
 
 
 // Handle undefined routes (404 Not Found)
