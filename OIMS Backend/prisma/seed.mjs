@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -23,14 +23,15 @@ async function main() {
       department: 'Computer',
       jobCategory: 'Technical',
       jobTitle: 'Technical_Officer',
-      qualification: 'Degree',
-      systemRole: 'Admin'
+      grade: 'NA',
+      role: 'ADMIN',
+      qualifications: { degree: 'BSc in Computer Science' },
     },
   });
 
   console.log('Default Admin created or already exists!');
   console.log('--- LOGIN CREDENTIALS ---');
-  console.log('Employee No / Email: ADMIN001 (or admin@office.com)');
+  console.log('Email: admin@office.com');
   console.log('Password: admin123');
   console.log('---------------------------');
 }
