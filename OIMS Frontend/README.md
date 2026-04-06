@@ -1,2 +1,0 @@
-# react-frontent-template
-
