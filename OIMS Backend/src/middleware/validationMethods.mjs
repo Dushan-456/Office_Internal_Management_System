@@ -195,7 +195,6 @@ export const commonValidate = (...keys) => {
   });
   return validateValues;
 };
-//common Query  validate------------------------------------------------------------------------------------------------------------------------
 export const comQueryValidate = (...keys) => {
   const validateValues = [];
   keys.forEach((k) => {
@@ -205,3 +204,13 @@ export const comQueryValidate = (...keys) => {
   });
   return validateValues;
 };
+
+// OIMS User Validation
+export const createUserValidation = () => [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('employeeNo').notEmpty().withMessage('Employee No is required'),
+  body('firstName').notEmpty().withMessage('First Name is required'),
+  body('lastName').notEmpty().withMessage('Last Name is required'),
+  body('nicNo').notEmpty().withMessage('NIC No is required')
+];
