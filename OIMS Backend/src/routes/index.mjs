@@ -7,9 +7,12 @@ const rootRouter = Router();
 // Health check endpoint (to test if API is running)
 rootRouter.get("/", (req, res) => res.sendStatus(200));
 
-// Mount feature routers
-// rootRouter.use("/users", userRoutes);           // User-related routes
+import authRoutes from "./authRoutes.mjs";
+import userRoutes from "./userRoutes.mjs";
 
+// Mount feature routers
+rootRouter.use("/auth", authRoutes);
+rootRouter.use("/users", userRoutes);
 
 // Handle undefined routes (404 Not Found)
 rootRouter.use((req, res, next) => {
