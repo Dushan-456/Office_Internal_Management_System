@@ -6,7 +6,6 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import { errorHandler } from "./src/middleware/errorMiddleware.mjs";
-import helmet from "helmet";
 import morgan from "morgan";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,13 +20,10 @@ server.set("trust proxy", 1);
 const PORT = process.env.PORT || 5001;
 const isProduction = process.env.NODE_ENV === "production";
 
-// Security headers
-server.use(helmet());
-
 // HTTP request logging
 server.use(morgan(isProduction ? "combined" : "dev"));
 
-// Strict CORS configuration
+// CORS configuration
 const allowedOrigins = (process.env.FRONTEND_URL || "")
   .split(",")
   .map((o) => o.trim())
@@ -47,7 +43,6 @@ const corsOptions = {
 };
 
 server.use(cors(corsOptions));
-server.options("*", cors(corsOptions));
 
 // Middleware to parse JSON request bodies
 server.use(express.json());
