@@ -228,7 +228,7 @@ const EmployeeProfilePage = () => {
                 }} 
               />
 
-              <Divider sx={{ mb: 4, opacity: 0.5 }} />
+              <Divider sx={{ mb: 1, opacity: 1 }} />
 
               <Stack spacing={3} className="text-left">
                 <Box className="flex items-center gap-4">
