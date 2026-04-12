@@ -53,9 +53,9 @@ export const getAllEmployees = async (req, res, next) => {
     // DEPT_HEAD can only see their own department
     if (req.user.role === "DEPT_HEAD") {
       filter.department = req.user.department;
+    } else if (department) {
+      filter.department = department;
     }
-
-    if (department) filter.department = department;
     if (employeeType) filter.employeeType = employeeType;
 
     if (search) {
