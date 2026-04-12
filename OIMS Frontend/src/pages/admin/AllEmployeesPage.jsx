@@ -22,6 +22,7 @@ const AllEmployeesPage = () => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === 'ADMIN';
+  const isDeptHead = currentUser?.role === 'DEPT_HEAD';
 
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +30,7 @@ const AllEmployeesPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
-  const [department, setDepartment] = useState('');
+  const [department, setDepartment] = useState(isDeptHead ? currentUser.department : '');
   const [enums, setEnums] = useState(null);
   const [delDialog, setDelDialog] = useState({ open: false, id: null, name: '' });
 
@@ -77,7 +78,8 @@ const AllEmployeesPage = () => {
     <Box>
       <Box className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <Typography variant="h4" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
-          All <span style={{ color: siteConfig.colors.primary }}>Employees</span>
+          {isDeptHead ? `${currentUser.department?.replace(/_/g, ' ')} ` : 'All '}
+          <span style={{ color: siteConfig.colors.primary }}>Employees</span>
         </Typography>
         {isAdmin && (
           <Button 
@@ -107,18 +109,20 @@ const AllEmployeesPage = () => {
             }
           }}
         />
-        <TextField 
-          select
-          label="Placement"
-          size="small"
-          sx={{ minWidth: 200 }}
-          value={department}
-          onChange={(e) => setDepartment(e.target.value)}
-          slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }}
-        >
-          <MenuItem value="">All Units</MenuItem>
-          {enums?.departments?.map(d => <MenuItem key={d} value={d}>{d.replace(/_/g, ' ')}</MenuItem>)}
-        </TextField>
+        {isAdmin && (
+          <TextField 
+            select
+            label="Placement"
+            size="small"
+            sx={{ minWidth: 200 }}
+            value={department}
+            onChange={(e) => setDepartment(e.target.value)}
+            slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }}
+          >
+            <MenuItem value="">All Units</MenuItem>
+            {enums?.departments?.map(d => <MenuItem key={d} value={d}>{d.replace(/_/g, ' ')}</MenuItem>)}
+          </TextField>
+        )}
       </Paper>
 
       {/* Modern Table */}
