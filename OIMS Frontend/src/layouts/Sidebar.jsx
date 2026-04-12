@@ -58,7 +58,7 @@ const Sidebar = () => {
   });
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/', show: isAdmin },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/', show: true },
     { text: 'Add Employee', icon: <PersonAddIcon />, path: '/employees/add', show: isAdmin },
     { text: 'All Employees', icon: <PeopleIcon />, path: '/employees', show: isAdmin || isDeptHead },
     { text: 'My Profile', icon: <AccountCircleIcon />, path: '/my-profile', show: true },
