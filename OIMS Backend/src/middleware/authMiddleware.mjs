@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import prisma from '../config/db.mjs';
+import User from '../models/User.mjs';
 
 export const protect = async (req, res, next) => {
   try {
@@ -26,9 +26,7 @@ export const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Check if user still exists
-    const currentUser = await prisma.user.findUnique({
-      where: { id: decoded.id },
-    });
+    const currentUser = await User.findById(decoded.id);
 
     if (!currentUser) {
       return res.status(401).json({
@@ -51,8 +49,7 @@ export const protect = async (req, res, next) => {
 export const restrictTo = (...roles) => {
   return (req, res, next) => {
     // roles is an array e.g. ['ADMIN', 'DEPT_HEAD']
-    // req.user.role might be in uppercase or camelCase depending on the schema (it's currently e.g. "ADMIN" or "Admin" based on Enum)
-    if (!roles.includes(req.user.role?.toUpperCase())) {
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to perform this action',

@@ -43,7 +43,7 @@ const useAuthStore = create((set) => ({
     }
 
     try {
-      const response = await api.get('/users/me');
+      const response = await api.get('/employees/me');
       set({
         user: response.data.data.user,
         isAuthenticated: true,

@@ -1,75 +1,138 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
-import { 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemIcon, 
-  ListItemText, 
-  Toolbar, 
+import { siteConfig } from '../config/siteConfig';
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
   Box,
   Typography,
-  Divider 
 } from '@mui/material';
-import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PeopleIcon from '@mui/icons-material/People';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import EventNoteIcon from '@mui/icons-material/EventNote';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { motion } from 'framer-motion';
 
-const drawerWidth = 240;
+const drawerWidth = 280;
 
 const Sidebar = () => {
   const { user } = useAuthStore();
-  const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
+  const location = useLocation();
+  const role = user?.role;
+  const isAdmin = role === 'ADMIN';
+  const isDeptHead = role === 'DEPT_HEAD';
+
+  const navItemStyle = (isActive) => ({
+    borderRadius: '16px',
+    mx: 2.5,
+    mb: 1.5,
+    py: 1.5,
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    position: 'relative',
+    bgcolor: isActive ? `${siteConfig.colors.primary}18` : 'transparent',
+    color: isActive ? siteConfig.colors.primary : 'var(--text-muted)',
+    border: '1px solid',
+    borderColor: isActive ? `${siteConfig.colors.primary}30` : 'transparent',
+    '&:hover': {
+      bgcolor: isActive ? `${siteConfig.colors.primary}25` : `${siteConfig.colors.accent}12`,
+      color: siteConfig.colors.accent,
+      transform: 'translateX(8px)',
+      boxShadow: isActive ? `0 8px 16px ${siteConfig.colors.primary}20` : `0 4px 12px ${siteConfig.colors.accent}15`,
+    },
+    '&::before': isActive ? {
+      content: '""',
+      position: 'absolute',
+      left: -8,
+      top: '25%',
+      height: '50%',
+      width: '6px',
+      bgcolor: siteConfig.colors.primary,
+      borderRadius: '0 4px 4px 0',
+      boxShadow: `0 0 10px ${siteConfig.colors.primary}`,
+    } : {},
+  });
+
+  const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/', show: isAdmin },
+    { text: 'Add Employee', icon: <PersonAddIcon />, path: '/employees/add', show: isAdmin },
+    { text: 'All Employees', icon: <PeopleIcon />, path: '/employees', show: isAdmin || isDeptHead },
+    { text: 'My Profile', icon: <AccountCircleIcon />, path: '/my-profile', show: true },
+  ];
 
   return (
     <Drawer
       variant="permanent"
       sx={{
         width: drawerWidth,
-        flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+        display: { xs: 'none', sm: 'block' },
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          borderRight: 'none',
+          boxShadow: 'none',
+          background: 'transparent',
+        },
       }}
     >
-      <Toolbar className="bg-slate-50 border-b border-slate-200">
-        <Typography variant="h6" className="font-bold text-blue-800 w-full text-center">
-          OIMS Portal
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <Box sx={{ overflow: 'auto' }} className="bg-slate-50 h-full">
-        <List>
-          {isAdmin && (
-            <>
-              <ListItem component={NavLink} to="/admin/users/add" 
-                className={({isActive}) => isActive ? "bg-blue-100 m-2 rounded-md" : "hover:bg-slate-100 m-2 rounded-md"}>
-                <ListItemIcon><GroupAddIcon className="text-blue-600" /></ListItemIcon>
-                <ListItemText primary="Add New User" sx={{ '& .MuiTypography-root': { fontWeight: '500', color: '#334155' } }} />
-              </ListItem>
-              <ListItem component={NavLink} to="/admin/users"
-                className={({isActive}) => isActive ? "bg-blue-100 m-2 rounded-md" : "hover:bg-slate-100 m-2 rounded-md"}>
-                <ListItemIcon><PeopleIcon className="text-blue-600" /></ListItemIcon>
-                <ListItemText primary="User List" sx={{ '& .MuiTypography-root': { fontWeight: '500', color: '#334155' } }} />
-              </ListItem>
-            </>
-          )}
+      <Box className="glass-sidebar h-full flex flex-col overflow-x-hidden">
+        {/* Logo Section */}
+        <Toolbar className="px-6 py-8 flex flex-col items-start gap-4 h-auto">
+          <Box className="flex items-center gap-3">
+            <motion.img 
+              src={siteConfig.logo} 
+              alt="Logo" 
+              className="w-10 h-10 rounded-xl shadow-lg"
+              whileHover={{ rotate: 5, scale: 1.05 }}
+            />
+            <Box>
+              <Typography variant="h6" className="font-extrabold leading-none tracking-tight" sx={{ color: 'var(--text-heading)' }}>
+                {siteConfig.name.split(' ')[0]}
+                <span style={{ color: siteConfig.colors.primary }}>{siteConfig.name.split(' ')[1]}</span>
+              </Typography>
+              <Typography variant="caption" className="text-slate-400 font-medium uppercase tracking-tighter">
+                Management System
+              </Typography>
+            </Box>
+          </Box>
+        </Toolbar>
 
-          {(!isAdmin && user) && (
-            <>
-              <ListItem component={NavLink} to="/employee/attendance"
-                className={({isActive}) => isActive ? "bg-blue-100 m-2 rounded-md" : "hover:bg-slate-100 m-2 rounded-md"}>
-                <ListItemIcon><AssignmentIcon className="text-blue-600" /></ListItemIcon>
-                <ListItemText primary="My Attendance" sx={{ '& .MuiTypography-root': { fontWeight: '500', color: '#334155' } }} />
+        <Box className="flex-1 mt-4">
+          <List disablePadding>
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+                
+              return item.show && (
+                <ListItem
+                  key={item.text}
+                  component={NavLink}
+                  to={item.path}
+                  sx={navItemStyle(isActive)}
+                >
+                <ListItemIcon sx={{ 
+                  minWidth: 40, 
+                  color: 'inherit',
+                  transition: 'color 0.3s'
+                }}>
+                  {React.cloneElement(item.icon, { sx: { fontSize: 22 } })}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{ 
+                    fontWeight: 700, 
+                    fontSize: '0.875rem', 
+                    letterSpacing: '-0.01em'
+                  }}
+                />
               </ListItem>
-              <ListItem component={NavLink} to="/employee/leave"
-                className={({isActive}) => isActive ? "bg-blue-100 m-2 rounded-md" : "hover:bg-slate-100 m-2 rounded-md"}>
-                <ListItemIcon><EventNoteIcon className="text-blue-600" /></ListItemIcon>
-                <ListItemText primary="Apply Leave" sx={{ '& .MuiTypography-root': { fontWeight: '500', color: '#334155' } }} />
-              </ListItem>
-            </>
-          )}
-        </List>
+            );})}
+          </List>
+        </Box>
+
       </Box>
     </Drawer>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
 import { useNavigate, Navigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import { siteConfig } from '../config/siteConfig';
 import { 
   Box, 
   Paper, 
@@ -9,107 +9,154 @@ import {
   TextField, 
   Button, 
   CircularProgress,
-  Alert
+  Alert,
+  InputAdornment,
+  Avatar
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import Avatar from '@mui/material/Avatar';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import KeyIcon from '@mui/icons-material/Key';
+import { motion } from 'framer-motion';
 
 const LoginPage = () => {
   const { login, isAuthenticated, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [localErr, setLocalErr] = useState('');
-  
-  const { control, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: { email: '', password: '' }
-  });
 
-  // If already logged in, seamlessly redirect to home
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  const onSubmit = async (data) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLocalErr('');
-    const success = await login(data.email, data.password);
+    
+    if (!email || !password) {
+      setLocalErr('Please fill in all fields');
+      return;
+    }
+
+    const success = await login(email, password);
     if (success) {
       navigate('/');
-    } else {
-      setLocalErr('Invalid email or password. Please try again.');
     }
   };
 
   return (
-    <Box className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <Paper elevation={3} className="w-full max-w-md p-8 rounded-xl bg-white shadow-xl">
-        <Box className="flex flex-col items-center mb-6">
-          <Avatar className="bg-blue-600 mb-2">
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography variant="h5" className="font-bold text-slate-800">
-            Sign In to OIMS
-          </Typography>
-          <Typography variant="body2" className="text-slate-500 mt-1">
-            Access your internal workspace
-          </Typography>
-        </Box>
+    <Box className="min-h-screen mesh-gradient-bg flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-[440px]"
+      >
+        <Paper 
+          elevation={0} 
+          className="glass-card p-10 rounded-[2.5rem] relative overflow-hidden"
+        >
+          {/* Decorative Circles */}
+          <Box className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl" sx={{ bgcolor: `${siteConfig.colors.primary}20` }} />
+          <Box className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-3xl" sx={{ bgcolor: `${siteConfig.colors.secondary}20` }} />
 
-        {(error || localErr) && (
-          <Alert severity="error" className="mb-4">
-            {error || localErr}
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <Controller
-            name="email"
-            control={control}
-            rules={{ 
-              required: 'Email is required',
-              pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' }
-            }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Email Address"
-                variant="outlined"
-                fullWidth
-                error={!!errors.email}
-                helperText={errors.email?.message}
-                disabled={isLoading}
+          <Box className="flex flex-col items-center mb-10 relative z-10">
+            <motion.div
+              whileHover={{ rotate: 10, scale: 1.1 }}
+              className="mb-6 p-1 rounded-2xl bg-white dark:bg-slate-800 shadow-xl"
+            >
+              <Avatar 
+                src={siteConfig.logo} 
+                className="w-16 h-16 rounded-2xl" 
+                variant="rounded"
               />
-            )}
-          />
+            </motion.div>
+            <Typography variant="h4" className="font-extrabold tracking-tight text-center" sx={{ color: 'var(--text-heading)' }}>
+              Welcome to <span style={{ color: siteConfig.colors.primary }}>OIMS</span>
+            </Typography>
+            <Typography variant="body2" className="text-slate-500 mt-2 font-medium">
+              {siteConfig.motto}
+            </Typography>
+          </Box>
 
-          <Controller
-            name="password"
-            control={control}
-            rules={{ required: 'Password is required' }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Password"
-                type="password"
-                variant="outlined"
-                fullWidth
-                error={!!errors.password}
-                helperText={errors.password?.message}
-                disabled={isLoading}
-              />
-            )}
-          />
+          {(error || localErr) && (
+            <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+              <Alert 
+                severity="error" 
+                className="mb-6 rounded-2xl border-none shadow-sm"
+                sx={{ bgcolor: '#fef2f2', color: '#991b1b', fontWeight: 600 }}
+              >
+                {error || localErr}
+              </Alert>
+            </motion.div>
+          )}
 
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            className="mt-2 bg-blue-600 hover:bg-blue-700 py-3"
-            fullWidth
-            disabled={isLoading}
-          >
-            {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Log In'}
-          </Button>
-        </form>
-      </Paper>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative z-10">
+            <TextField
+              label="Email Address"
+              variant="outlined"
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MailOutlineIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' }
+                }
+              }}
+            />
+
+            <TextField
+              label="Password"
+              type="password"
+              variant="outlined"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isLoading}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <KeyIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' }
+                }
+              }}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              disabled={isLoading}
+              className="btn-premium mt-4"
+              sx={{ 
+                py: 1.8, 
+                borderRadius: '15px', 
+                textTransform: 'none', 
+                fontSize: '1rem', 
+                fontWeight: 700 
+              }}
+            >
+              {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Sign In Now'}
+            </Button>
+          </form>
+
+          <Box className="mt-8 text-center relative z-10">
+            <Typography variant="caption" className="text-slate-400 font-medium">
+              Secured Internal Management Portal • Est. 2024
+            </Typography>
+          </Box>
+        </Paper>
+      </motion.div>
     </Box>
   );
 };

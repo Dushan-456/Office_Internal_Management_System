@@ -1,12 +1,14 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 import rootRouter from "./src/routes/index.mjs";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import { errorHandler } from "./src/middleware/errorMiddleware.mjs";
 import morgan from "morgan";
+import connectDB from "./src/config/db.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,7 +56,7 @@ server.use(express.urlencoded({ extended: true }));
 server.use(cookieParser());
 
 // Serve static uploaded files ---
-const staticUploadsPath = path.join(__dirname, "..", "public", "uploads");
+const staticUploadsPath = path.join(__dirname, "public", "uploads");
 server.use("/uploads", express.static(staticUploadsPath));
 
 // Health and readiness probes
@@ -67,22 +69,30 @@ server.use("/api/v1", rootRouter);
 // Error handler
 server.use(errorHandler);
 
-// Start the server and listen on the defined port
-const httpServer = server.listen(PORT, () =>
-  console.log(`Server is running........on port ${PORT}  :)`)
-);
+// Connect to MongoDB and start the server
+const startServer = async () => {
+  await connectDB();
 
-// Graceful shutdown
-const shutdown = (signal) => {
-  console.log(`${signal} received: closing server...`);
-  httpServer.close((err) => {
-    if (err) {
-      console.error("Error during HTTP server close", err);
-      process.exit(1);
-    }
-    process.exit(0);
-  });
+  const httpServer = server.listen(PORT, () =>
+    console.log(`Server is running........on port ${PORT}  :)`)
+  );
+
+  // Graceful shutdown
+  const shutdown = (signal) => {
+    console.log(`${signal} received: closing server...`);
+    httpServer.close(async (err) => {
+      if (err) {
+        console.error("Error during HTTP server close", err);
+        process.exit(1);
+      }
+      await mongoose.disconnect();
+      console.log("MongoDB disconnected.");
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 };
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+startServer();

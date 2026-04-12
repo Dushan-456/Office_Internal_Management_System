@@ -2,8 +2,15 @@ import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import MainLayout from "../layouts/MainLayout";
 import Error404Page from "../pages/Error404Page";
 import ProtectedRouter from "./ProtectedRouter";
-import AddUserPage from "../pages/admin/AddUserPage";
 import LoginPage from "../pages/LoginPage";
+
+// Pages
+import DashboardPage from "../pages/admin/DashboardPage";
+import AddEmployeePage from "../pages/admin/AddEmployeePage";
+import AllEmployeesPage from "../pages/admin/AllEmployeesPage";
+import EmployeeProfilePage from "../pages/admin/EmployeeProfilePage";
+import MyProfilePage from "../pages/employee/MyProfilePage";
+import EditEmployeePage from "../pages/admin/EditEmployeePage";
 
 const router = createBrowserRouter([
   // --- Login Route (standalone, NO sidebar/layout) ---
@@ -20,30 +27,34 @@ const router = createBrowserRouter([
         path: "/",
         element: <MainLayout />,
         children: [
-          // --- Dashboard / Home (redirect based on role is handled inside) ---
+          // --- Dashboard (Admin only, others redirect to My Profile) ---
           {
             index: true,
-            element: <Navigate to="/admin/users" replace />,
+            element: <DashboardPage />,
           },
 
-          // --- Admin Routes ---
+          // --- Employee Management ---
           {
-            path: "admin/users",
-            element: <div>User List Page Stub</div>,
+            path: "employees",
+            element: <AllEmployeesPage />,
           },
           {
-            path: "admin/users/add",
-            element: <AddUserPage />,
+            path: "employees/add",
+            element: <AddEmployeePage />,
+          },
+          {
+            path: "employees/:id",
+            element: <EmployeeProfilePage />,
+          },
+          {
+            path: "employees/edit/:id",
+            element: <EditEmployeePage />,
           },
 
-          // --- Employee Routes (stubs for now) ---
+          // --- My Profile (all roles) ---
           {
-            path: "employee/attendance",
-            element: <div>My Attendance Page Stub</div>,
-          },
-          {
-            path: "employee/leave",
-            element: <div>Apply Leave Page Stub</div>,
+            path: "my-profile",
+            element: <MyProfilePage />,
           },
 
           // --- Catch-all 404 ---

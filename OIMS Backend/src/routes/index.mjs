@@ -1,6 +1,5 @@
 import { Router } from "express";
 
-
 // Create the main root router
 const rootRouter = Router();
 
@@ -8,11 +7,13 @@ const rootRouter = Router();
 rootRouter.get("/", (req, res) => res.sendStatus(200));
 
 import authRoutes from "./authRoutes.mjs";
-import userRoutes from "./userRoutes.mjs";
+import employeeRoutes from "./employeeRoutes.mjs";
+import enumRoutes from "./enumRoutes.mjs";
 
 // Mount feature routers
 rootRouter.use("/auth", authRoutes);
-rootRouter.use("/users", userRoutes);
+rootRouter.use("/employees", employeeRoutes);
+rootRouter.use("/enums", enumRoutes);
 
 // Handle undefined routes (404 Not Found)
 rootRouter.use((req, res, next) => {

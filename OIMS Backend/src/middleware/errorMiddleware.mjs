@@ -5,14 +5,26 @@ export const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;
 
-  // Handle Prisma generic errors (simplified for this scope)
-  if (err.code === 'P2002') {
-    const target = err.meta?.target || 'field';
+  // Handle Mongoose duplicate key error (code 11000)
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue).join(', ');
     error.statusCode = 400;
-    error.message = `Duplicate field value entered for ${target}. Please use another value!`;
+    error.message = `Duplicate field value entered for ${field}. Please use another value!`;
   }
 
-  // Handle express-validator errors logic if tossed down, though usually handled inline.
+  // Handle Mongoose validation errors
+  if (err.name === 'ValidationError') {
+    const messages = Object.values(err.errors).map((e) => e.message);
+    error.statusCode = 400;
+    error.message = messages.join('. ');
+  }
+
+  // Handle Mongoose bad ObjectId (CastError)
+  if (err.name === 'CastError') {
+    error.statusCode = 400;
+    error.message = `Invalid ${err.path}: ${err.value}`;
+  }
+
   // Standard response
   res.status(error.statusCode).json({
     success: false,
