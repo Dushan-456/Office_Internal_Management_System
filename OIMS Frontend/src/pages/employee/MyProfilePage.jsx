@@ -209,11 +209,21 @@ const MyProfilePage = () => {
                   color: siteConfig.colors.primary, 
                   fontWeight: 800,
                   borderRadius: '10px',
-                  mb: 4
+                  mb: 1
                 }} 
               />
+             <Chip 
+                              label={emp.department?.replace(/_/g, ' ')} 
+                              sx={{ 
+                                bgcolor: `${siteConfig.colors.primary}10`, 
+                                color: siteConfig.colors.primary, 
+                                fontWeight: 800,
+                                borderRadius: '10px',
+                                mb: 2
+                              }} 
+                            />
 
-              <Divider sx={{ mb: 4, opacity: 0.5 }} />
+              <Divider sx={{ mb: 1, opacity: 0.5 }} />
 
               <Stack spacing={3} className="text-left">
                 <Box className="flex items-center gap-4">
