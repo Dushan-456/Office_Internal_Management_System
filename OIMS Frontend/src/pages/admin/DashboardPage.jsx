@@ -11,6 +11,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import BadgeIcon from '@mui/icons-material/Badge';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { motion } from 'framer-motion';
+import useAuthStore from '../../store/useAuthStore';
 
 const StatCard = ({ title, value, icon, color, delay }) => (
   <motion.div
@@ -51,9 +52,15 @@ const StatCard = ({ title, value, icon, color, delay }) => (
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
 
   useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
     const fetchStats = async () => {
       try {
         const res = await getEmployeeStats();
@@ -111,16 +118,18 @@ const DashboardPage = () => {
             Monitor institutional growth, employee distribution, and departmental analytics from your premium command center.
           </Typography>
           <Box className="flex gap-4 mt-8">
+            {isAdmin && (
+              <Button 
+                onClick={() => navigate('/employees/add')}
+                variant="contained" 
+                className="btn-premium"
+                sx={{ px: 4, py: 1.5, borderRadius: '15px', textTransform: 'none', fontWeight: 800 }}
+              >
+                Add New Resource
+              </Button>
+            )}
             <Button 
-              onClick={() => navigate('/employees/add')}
-              variant="contained" 
-              className="btn-premium"
-              sx={{ px: 4, py: 1.5, borderRadius: '15px', textTransform: 'none', fontWeight: 800 }}
-            >
-              Add New Resource
-            </Button>
-            <Button 
-              onClick={() => navigate('/employees')}
+              onClick={() => navigate(isAdmin ? '/employees' : '/my-profile')}
               variant="outlined" 
               sx={{ 
                 px: 4, 
@@ -133,130 +142,134 @@ const DashboardPage = () => {
                 '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
               }}
             >
-              System Directory
+              {isAdmin ? 'System Directory' : 'My Portal'}
             </Button>
           </Box>
         </Box>
       </motion.div>
 
-      {/* Stats Grid */}
-      <Grid container spacing={4} className="mb-10">
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Active Workforce" 
-            value={stats?.totalEmployees || 0} 
-            icon={<PeopleIcon />} 
-            color="#6366f1" 
-            delay={0.1}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Institutional Units" 
-            value={stats?.byDepartment?.length || 0} 
-            icon={<BusinessIcon />} 
-            color="#06b6d4" 
-            delay={0.2}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Onboarded Today" 
-            value="0" 
-            icon={<PersonAddIcon />} 
-            color="#10b981" 
-            delay={0.3}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard 
-            title="Senior Staff" 
-            value={stats?.byEmployeeType?.find(t => t.employeeType === 'Permanent')?.count || 0} 
-            icon={<BadgeIcon />} 
-            color="#f59e0b" 
-            delay={0.4}
-          />
-        </Grid>
-      </Grid>
+      {isAdmin && (
+        <>
+          {/* Stats Grid */}
+          <Grid container spacing={4} className="mb-10">
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard 
+                title="Active Workforce" 
+                value={stats?.totalEmployees || 0} 
+                icon={<PeopleIcon />} 
+                color="#6366f1" 
+                delay={0.1}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard 
+                title="Institutional Units" 
+                value={stats?.byDepartment?.length || 0} 
+                icon={<BusinessIcon />} 
+                color="#06b6d4" 
+                delay={0.2}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard 
+                title="Onboarded Today" 
+                value="0" 
+                icon={<PersonAddIcon />} 
+                color="#10b981" 
+                delay={0.3}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard 
+                title="Senior Staff" 
+                value={stats?.byEmployeeType?.find(t => t.employeeType === 'Permanent')?.count || 0} 
+                icon={<BadgeIcon />} 
+                color="#f59e0b" 
+                delay={0.4}
+              />
+            </Grid>
+          </Grid>
 
-      {/* Analytics Row */}
-      <Grid container spacing={4}>
-        <Grid item xs={12} lg={8}>
-          <Paper className="glass-card p-8 rounded-[2.5rem]">
-            <Box className="flex items-center justify-between mb-8">
-              <Typography variant="h6" className="font-extrabold" sx={{ color: 'var(--text-heading)' }}>
-                Departmental Density
-              </Typography>
-              <Button size="small" endIcon={<ArrowForwardIosIcon sx={{ fontSize: 10 }} />} sx={{ textTransform: 'none', fontWeight: 700 }}>
-                Details
-              </Button>
-            </Box>
-            <Box className="space-y-6">
-              {stats?.byDepartment?.map((dept, idx) => {
-                const colors = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
-                const color = colors[idx % colors.length];
-                const percentage = stats.totalEmployees > 0 
-                  ? Math.round((dept.count / stats.totalEmployees) * 100) : 0;
-                
-                return (
-                  <Box key={dept.department}>
-                    <Box className="flex items-center justify-between mb-2">
-                      <Box className="flex items-center gap-3">
-                        <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                        <Typography variant="body2" className="font-bold" sx={{ color: 'var(--text-muted)' }}>
-                          {dept.department?.replace(/_/g, ' ')}
-                        </Typography>
+          {/* Analytics Row */}
+          <Grid container spacing={4}>
+            <Grid item xs={12} lg={8}>
+              <Paper className="glass-card p-8 rounded-[2.5rem]">
+                <Box className="flex items-center justify-between mb-8">
+                  <Typography variant="h6" className="font-extrabold" sx={{ color: 'var(--text-heading)' }}>
+                    Departmental Density
+                  </Typography>
+                  <Button size="small" endIcon={<ArrowForwardIosIcon sx={{ fontSize: 10 }} />} sx={{ textTransform: 'none', fontWeight: 700 }}>
+                    Details
+                  </Button>
+                </Box>
+                <Box className="space-y-6">
+                  {stats?.byDepartment?.map((dept, idx) => {
+                    const colors = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
+                    const color = colors[idx % colors.length];
+                    const percentage = stats.totalEmployees > 0 
+                      ? Math.round((dept.count / stats.totalEmployees) * 100) : 0;
+                    
+                    return (
+                      <Box key={dept.department}>
+                        <Box className="flex items-center justify-between mb-2">
+                          <Box className="flex items-center gap-3">
+                            <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                            <Typography variant="body2" className="font-bold" sx={{ color: 'var(--text-muted)' }}>
+                              {dept.department?.replace(/_/g, ' ')}
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" className="font-black" sx={{ color: 'var(--text-heading)' }}>
+                            {dept.count} <span className="text-slate-400 font-medium text-xs ml-1">({percentage}%)</span>
+                          </Typography>
+                        </Box>
+                        <Box className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ duration: 1, delay: 0.5 + (idx * 0.1) }}
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: color }}
+                          />
+                        </Box>
                       </Box>
-                      <Typography variant="body2" className="font-black" sx={{ color: 'var(--text-heading)' }}>
-                        {dept.count} <span className="text-slate-400 font-medium text-xs ml-1">({percentage}%)</span>
-                      </Typography>
-                    </Box>
-                    <Box className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        transition={{ duration: 1, delay: 0.5 + (idx * 0.1) }}
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: color }}
-                      />
-                    </Box>
-                  </Box>
-                );
-              })}
-            </Box>
-          </Paper>
-        </Grid>
+                    );
+                  })}
+                </Box>
+              </Paper>
+            </Grid>
 
-        <Grid item xs={12} lg={4}>
-          <Paper className="glass-card p-8 rounded-[2.5rem] h-full">
-            <Typography variant="h6" className="font-extrabold mb-6" sx={{ color: 'var(--text-heading)' }}>
-              Employment Mix
-            </Typography>
-            <Box className="space-y-4">
-              {stats?.byEmployeeType?.map((type, idx) => {
-                const colors = ['#10b981', '#f59e0b', '#6366f1', '#ec4899', '#06b6d4'];
-                const color = colors[idx % colors.length];
-                return (
-                  <Box 
-                    key={type.employeeType}
-                    className="flex justify-between items-center p-4 rounded-2xl border border-slate-50 hover:border-slate-100 transition-colors"
-                  >
-                    <Typography variant="body2" className="font-bold" sx={{ color: 'var(--text-muted)' }}>
-                      {type.employeeType?.replace(/_/g, ' ')}
-                    </Typography>
-                    <Box 
-                      className="px-3 py-1 rounded-lg text-white font-black text-sm"
-                      style={{ backgroundColor: color }}
-                    >
-                      {type.count}
-                    </Box>
-                  </Box>
-                );
-              })}
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+            <Grid item xs={12} lg={4}>
+              <Paper className="glass-card p-8 rounded-[2.5rem] h-full">
+                <Typography variant="h6" className="font-extrabold mb-6" sx={{ color: 'var(--text-heading)' }}>
+                  Employment Mix
+                </Typography>
+                <Box className="space-y-4">
+                  {stats?.byEmployeeType?.map((type, idx) => {
+                    const colors = ['#10b981', '#f59e0b', '#6366f1', '#ec4899', '#06b6d4'];
+                    const color = colors[idx % colors.length];
+                    return (
+                      <Box 
+                        key={type.employeeType}
+                        className="flex justify-between items-center p-4 rounded-2xl border border-slate-50 hover:border-slate-100 transition-colors"
+                      >
+                        <Typography variant="body2" className="font-bold" sx={{ color: 'var(--text-muted)' }}>
+                          {type.employeeType?.replace(/_/g, ' ')}
+                        </Typography>
+                        <Box 
+                          className="px-3 py-1 rounded-lg text-white font-black text-sm"
+                          style={{ backgroundColor: color }}
+                        >
+                          {type.count}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Paper>
+            </Grid>
+          </Grid>
+        </>
+      )}
     </Box>
   );
 };
