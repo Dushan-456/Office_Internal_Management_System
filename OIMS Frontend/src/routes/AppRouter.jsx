@@ -27,41 +27,38 @@ const router = createBrowserRouter([
         path: "/",
         element: <MainLayout />,
         children: [
-          // --- Dashboard (Admin only, others redirect to My Profile) ---
-          {
-            index: true,
-            element: <DashboardPage />,
+          // --- Global Dashboard (Available to all, analytics Admin-only) ---
+          { 
+            index: true, 
+            element: <DashboardPage /> 
           },
 
-          // --- Employee Management ---
+          // --- Unified Employee Management Hub ---
           {
             path: "employees",
-            element: <AllEmployeesPage />,
-          },
-          {
-            path: "employees/add",
-            element: <AddEmployeePage />,
-          },
-          {
-            path: "employees/:id",
-            element: <EmployeeProfilePage />,
-          },
-          {
-            path: "employees/edit/:id",
-            element: <EditEmployeePage />,
+            element: <ProtectedRouter ProtectedRole="DEPT_HEAD" />, // Base access for Dept Head + Admin
+            children: [
+              { index: true, element: <AllEmployeesPage /> },
+              {
+                path: "add",
+                element: <ProtectedRouter ProtectedRole="ADMIN"><AddEmployeePage /></ProtectedRouter>
+              },
+              {
+                path: "edit/:id",
+                element: <ProtectedRouter ProtectedRole="ADMIN"><EditEmployeePage /></ProtectedRouter>
+              },
+              {
+                path: ":id",
+                element: <EmployeeProfilePage />
+              },
+            ]
           },
 
-          // --- My Profile (all roles) ---
-          {
-            path: "my-profile",
-            element: <MyProfilePage />,
-          },
+          // --- Public Authenticated Area (All Roles) ---
+          { path: "my-profile", element: <MyProfilePage /> },
 
           // --- Catch-all 404 ---
-          {
-            path: "*",
-            element: <Error404Page />,
-          },
+          { path: "*", element: <Error404Page /> },
         ],
       },
     ],
