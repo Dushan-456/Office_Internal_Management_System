@@ -3,7 +3,7 @@ import useAuthStore from "../store/useAuthStore";
 import { CircularProgress, Box } from "@mui/material";
 import Error403Page from "../pages/Error403Page";
 
-const ProtectedRouter = ({ ProtectedRole }) => {
+const ProtectedRouter = ({ ProtectedRole, children }) => {
   const { isAuthenticated, user, isLoading } = useAuthStore();
   const location = useLocation();
 
@@ -26,7 +26,7 @@ const ProtectedRouter = ({ ProtectedRole }) => {
     );
   }
 
-  return <Outlet />;
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRouter;
