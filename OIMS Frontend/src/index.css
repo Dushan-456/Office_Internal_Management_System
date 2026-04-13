@@ -35,6 +35,32 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
+  /* Premium Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-secondary);
+  }
+
+  /* Support for Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-primary) transparent;
+  }
+
   /* Global MUI Dropdown fix */
   .MuiMenu-paper, .MuiPopover-paper {
     background-color: var(--bg-main) !important;
