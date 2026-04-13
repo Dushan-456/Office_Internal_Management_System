@@ -286,7 +286,9 @@ const DashboardPage = () => {
               },
               { 
                 label: 'Approved Leaves', 
-                value: personalLeaves.filter(l => l.status === 'approved').length,
+                value: personalLeaves
+                  .filter(l => l.status === 'approved')
+                  .reduce((sum, l) => sum + (l.totalDays || 0), 0),
                 color: '#10b981',
                 icon: <CheckCircleIcon />
               },
@@ -297,9 +299,9 @@ const DashboardPage = () => {
                 icon: <NotificationImportantIcon />
               },
               { 
-                label: 'Rejected Feedbk', 
-                value: personalLeaves.filter(l => l.status === 'rejected').length,
-                color: '#ef4444',
+                label: 'Available Leaves', 
+                value: `${user?.annualLeaveBalance ?? 45} / 45`,
+                color: '#6cef44ff',
                 icon: <ArrowForwardIosIcon />
               }
             ].map((item, idx) => (
@@ -324,29 +326,39 @@ const DashboardPage = () => {
           <Paper className="glass-card p-6 rounded-[2rem] border border-slate-50">
             <Typography variant="body2" className="font-black mb-4 uppercase tracking-tighter text-slate-500">Distribution by Leave Type</Typography>
             <Box className="space-y-4">
-              {['Annual', 'Medical', 'Casual', 'Short'].map(type => {
-                const count = personalLeaves.filter(l => l.leaveType?.includes(type)).length;
-                const total = personalLeaves.length || 1;
-                const percentage = Math.round((count / total) * 100);
-                const colors = { Annual: '#6366f1', Medical: '#10b981', Casual: '#f59e0b', Short: '#ec4899' };
+              {(() => {
+                const approvedLeaves = personalLeaves.filter(l => l.status === 'approved');
+                const uniqueTypes = [...new Set(approvedLeaves.map(l => l.leaveType))].sort();
+                
+                return uniqueTypes.map(type => {
+                  const count = approvedLeaves.filter(l => l.leaveType === type).length;
+                  const total = approvedLeaves.length || 1;
+                  const percentage = Math.round((count / total) * 100);
+                  const typeColors = { Annual: '#6366f1', Medical: '#10b981', Casual: '#f59e0b', Short: '#ec4899' };
+                  const color = typeColors[type] || siteConfig.colors.primary;
 
-                return (
-                  <Box key={type}>
-                    <Box className="flex justify-between mb-1">
-                      <Typography variant="body2" className="font-bold">{type} Leave</Typography>
-                      <Typography variant="body2" className="font-black">{count}</Typography>
+                  return (
+                    <Box key={type}>
+                      <Box className="flex justify-between mb-1">
+                        <Typography variant="body2" className="font-bold">{type} Leave</Typography>
+                        <Typography variant="body2" className="font-black">{count}</Typography>
+                      </Box>
+                      <Box className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          className="h-full rounded-full"
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          style={{ backgroundColor: color }}
+                        />
+                      </Box>
                     </Box>
-                    <Box className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: colors[type] || '#cbd5e1' }}
-                      />
-                    </Box>
-                  </Box>
-                );
-              })}
+                  );
+                });
+              })()}
+              {personalLeaves.filter(l => l.status === 'approved').length === 0 && (
+                <Typography variant="caption" className="text-slate-400 italic">No approved leave records for this year.</Typography>
+              )}
             </Box>
           </Paper>
         </Grid>
