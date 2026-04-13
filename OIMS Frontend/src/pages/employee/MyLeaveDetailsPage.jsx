@@ -12,6 +12,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
 import { leaveApi } from '../../api/leaveApi';
 import { siteConfig } from '../../config/siteConfig';
+import useAuthStore from '../../store/useAuthStore';
 
 const MyLeaveDetailsPage = () => {
   const [requests, setRequests] = useState([]);
@@ -22,6 +23,7 @@ const MyLeaveDetailsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const fetchRequests = async () => {
     try {
@@ -243,37 +245,51 @@ const MyLeaveDetailsPage = () => {
 
               <Box className="mb-8 p-8 rounded-[2.5rem]  border border-indigo-100 text-center relative overflow-hidden group">
                 <Box className="absolute top-0 right-0 w-24 h-24  rounded-full -mr-10 -mt-10 blur-2xl" />
-                <Typography variant="h2" className="font-black text-indigo-700 relative z-10">
-                  {requests.filter(l => new Date(l.dateRange.from).getFullYear() === new Date().getFullYear()).length}
+                <Typography variant="h2" className="font-black uppercase text-indigo-400 tracking-tighter relative z-10">                 
+                   {requests
+                     .filter(l => l.status === 'approved' && new Date(l.dateRange.from).getFullYear() === new Date().getFullYear())
+                     .reduce((sum, l) => sum + (l.totalDays || 0), 0)}</Typography>
+                <Typography variant="caption" className="font-black uppercase text-indigo-400 tracking-tighter relative z-10">Approved Leaves Total</Typography>
+                <Typography variant="h5" className="font-black  relative z-10">
+                  {user?.annualLeaveBalance ?? 45} / 45
                 </Typography>
-                <Typography variant="caption" className="font-black uppercase text-indigo-400 tracking-tighter relative z-10">Total Leaves Applied</Typography>
               </Box>
 
               <Typography variant="subtitle2" className="font-black mb-4 px-2 uppercase text-[0.7rem] text-slate-400">By Leave Type</Typography>
               <List disablePadding className="space-y-3">
-                {['Annual', 'Medical', 'Casual', 'Short'].map((type, idx) => {
-                  const count = requests.filter(l => 
-                    new Date(l.dateRange.from).getFullYear() === new Date().getFullYear() && 
-                    l.leaveType?.includes(type)
-                  ).length;
-                  const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899'];
-
-                  return (
-                    <ListItem 
-                      key={type} 
-                      className="rounded-2xl border border-transparent transition-all hover:border-slate-100 "
-                      sx={{ py: 1.2, px: 2 }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 30 }}>
-                        <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: colors[idx] }} />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={<Typography className="font-bold text-[0.85rem] text-slate-600">{type} Leave</Typography>} 
-                      />
-                      <Typography>{count}</Typography>
-                    </ListItem>
+                {(() => {
+                  const currentYear = new Date().getFullYear();
+                  const approvedRequests = requests.filter(l => 
+                    l.status === 'approved' && 
+                    new Date(l.dateRange.from).getFullYear() === currentYear
                   );
-                })}
+                  const uniqueTypes = [...new Set(approvedRequests.map(l => l.leaveType))].sort();
+
+                  return uniqueTypes.map(type => {
+                    const count = approvedRequests.filter(l => l.leaveType === type).length;
+                    const typeColors = { Annual: '#6366f1', Medical: '#10b981', Casual: '#f59e0b', Short: '#ec4899' };
+                    const color = typeColors[type] || siteConfig.colors.primary;
+
+                    return (
+                      <ListItem 
+                        key={type} 
+                        className="rounded-2xl border border-transparent transition-all hover:border-slate-100 "
+                        sx={{ py: 1.2, px: 2 }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 30 }}>
+                          <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={<Typography className="font-bold text-[0.85rem] text-slate-600">{type} Leave</Typography>} 
+                        />
+                        <Typography>{count}</Typography>
+                      </ListItem>
+                    );
+                  });
+                })()}
+                {requests.filter(l => l.status === 'approved' && new Date(l.dateRange.from).getFullYear() === new Date().getFullYear()).length === 0 && (
+                  <Typography variant="caption" className="text-slate-400 italic px-2">No approved records yet.</Typography>
+                )}
               </List>
               
               <Divider className="my-6" sx={{ borderStyle: 'dashed', opacity: 0.5 }} />
