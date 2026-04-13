@@ -127,6 +127,7 @@ const MyProfilePage = () => {
   
   const roleStyles = {
     ADMIN: { bg: '#fee2e2', color: '#ef4444', label: 'System Administrator', icon: <VerifiedUserIcon /> },
+    TOP_ADMIN: { bg: '#fee2e2', color: '#b88909ff', label: 'Top Management', icon: <VerifiedUserIcon /> },
     DEPT_HEAD: { bg: '#ede9fe', color: '#8b5cf6', label: 'Department Head', icon: <WorkHistoryIcon /> },
     EMPLOYEE: { bg: '#d1fae5', color: '#10b981', label: 'Staff Member', icon: <BadgeOutlinedIcon /> },
   };
