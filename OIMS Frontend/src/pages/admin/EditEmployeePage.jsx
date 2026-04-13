@@ -17,6 +17,12 @@ const qualificationsList = [
   'Professional_Qualification', 'Degree', 'Masters', 'PHD'
 ];
 
+const roleLabels = {
+  ADMIN: 'System Administrator',
+  DEPT_HEAD: 'Department Head',
+  EMPLOYEE: 'Staff Member',
+};
+
 const EditEmployeePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -160,8 +166,8 @@ const EditEmployeePage = () => {
   }
 
   return (
-    <Box className="max-w-4xl mx-auto">
-      <Box className="flex items-center gap-4 mb-8">
+    <Box className="max-w-4xl mx-auto px-1">
+      <Box className="flex items-center gap-3 mb-6 md:mb-8">
         <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: 'white', shadow: 1 }}>
           <ArrowBackIcon />
         </IconButton>
@@ -171,11 +177,11 @@ const EditEmployeePage = () => {
       </Box>
 
       <form onSubmit={handleSubmit}>
-        <Box className="space-y-8">
+        <Box className="space-y-6 md:space-y-8">
           {apiError && <Alert severity="error" className="rounded-2xl shadow-sm">{apiError}</Alert>}
           
           {/* Profile Section */}
-          <Paper className="glass-card p-8 rounded-[2rem]">
+          <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
             <Box className="flex flex-col md:flex-row items-center gap-8">
               <Box className="relative">
                 <Avatar src={profilePreview} sx={{ width: 120, height: 120, bgcolor: '#f1f5f9', border: '4px solid white', shadow: 2 }}>
@@ -206,30 +212,30 @@ const EditEmployeePage = () => {
           </Paper>
 
           {/* Core Identity */}
-          <Paper className="glass-card p-8 rounded-[2rem]">
-            <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)' }}>
+          <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
+            <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
               <Box className="w-2 h-6 rounded-full" style={{ backgroundColor: siteConfig.colors.primary }} />
               System Credentials
             </Typography>
-            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               <TextField name="employeeNo" label="Employee No *" value={formData.employeeNo} onChange={handleChange} fullWidth required slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="epfNo" label="EPF No" value={formData.epfNo} onChange={handleChange} fullWidth slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="fingerPrintId" label="Fingerprint ID" value={formData.fingerPrintId} onChange={handleChange} fullWidth slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="email" label="Email *" type="email" value={formData.email} onChange={handleChange} fullWidth required slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="password" label="New Password (optional)" type="password" placeholder="Leave blank to keep current" value={formData.password} onChange={handleChange} fullWidth slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="role" label="Access Role" value={formData.role} onChange={handleChange} fullWidth select slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }}>
-                {enums.roles.map((r) => <MenuItem key={r} value={r}>{formatLabel(r)}</MenuItem>)}
+                {enums.roles.map((r) => <MenuItem key={r} value={r}>{roleLabels[r] || formatLabel(r)}</MenuItem>)}
               </TextField>
             </Box>
           </Paper>
 
           {/* Personal Info */}
-          <Paper className="glass-card p-8 rounded-[2rem]">
-            <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)' }}>
+          <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
+            <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
               <Box className="w-2 h-6 rounded-full" style={{ backgroundColor: siteConfig.colors.secondary }} />
               Personal Profile
             </Typography>
-            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               <TextField name="firstName" label="First Name" value={formData.firstName} onChange={handleChange} fullWidth slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="lastName" label="Last Name" value={formData.lastName} onChange={handleChange} fullWidth slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="nicNo" label="NIC Number" value={formData.nicNo} onChange={handleChange} fullWidth slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
@@ -248,12 +254,12 @@ const EditEmployeePage = () => {
           </Paper>
 
           {/* Employment Detail */}
-          <Paper className="glass-card p-8 rounded-[2rem]">
-            <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)' }}>
+          <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
+            <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
               <Box className="w-2 h-6 rounded-full" style={{ backgroundColor: siteConfig.colors.accent }} />
               Institutional Placement
             </Typography>
-            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Box className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               <TextField name="dateJoined" label="Enrolment Date" type="date" value={formData.dateJoined} onChange={handleChange} fullWidth slotProps={{ inputLabel: { shrink: true }, input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="department" label="Department" value={formData.department} onChange={handleChange} fullWidth select slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }}>
                 {enums.departments.map((d) => <MenuItem key={d} value={d}>{formatLabel(d)}</MenuItem>)}
@@ -274,8 +280,8 @@ const EditEmployeePage = () => {
           </Paper>
 
           {/* Qualifications */}
-          <Paper className="glass-card p-8 rounded-[2rem]">
-             <Typography variant="h6" className="font-bold mb-4" sx={{ color: 'var(--text-heading)' }}>Professional Qualifications</Typography>
+          <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
+             <Typography variant="h6" className="font-bold mb-4" sx={{ color: 'var(--text-heading)', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>Professional Qualifications</Typography>
              <Box className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                {qualificationsList.map((q) => (
                  <FormControlLabel
@@ -287,9 +293,9 @@ const EditEmployeePage = () => {
              </Box>
           </Paper>
 
-          <Box className="flex justify-end gap-3 pb-20">
-            <Button onClick={() => navigate(-1)} size="large" sx={{ py: 1.5, px: 6, borderRadius: '15px', textTransform: 'none', fontWeight: 800, color: '#64748b' }}>Discard Changes</Button>
-            <Button type="submit" variant="contained" disabled={isSubmitting} className="btn-premium" sx={{ py: 1.5, px: 10, borderRadius: '15px', textTransform: 'none', fontWeight: 800 }}>
+          <Box className="flex flex-col sm:flex-row justify-end gap-3 pb-20">
+            <Button onClick={() => navigate(-1)} size="large" fullWidth sx={{ py: 1.5, px: 6, borderRadius: '15px', textTransform: 'none', fontWeight: 800, color: '#64748b' }}>Discard Changes</Button>
+            <Button type="submit" variant="contained" disabled={isSubmitting} className="btn-premium" fullWidth sx={{ py: 1.5, px: 10, borderRadius: '15px', textTransform: 'none', fontWeight: 800 }}>
               {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Synchronize Record'}
             </Button>
           </Box>
