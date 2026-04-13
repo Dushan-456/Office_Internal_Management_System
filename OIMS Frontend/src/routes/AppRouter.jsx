@@ -14,6 +14,13 @@ import EditEmployeePage from "../pages/admin/EditEmployeePage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/ResetPasswordPage";
 
+// Leave Pages
+import LeaveApplicationForm from "../pages/employee/LeaveApplicationForm";
+import ActingRequestsPage from "../pages/employee/ActingRequestsPage";
+import MyLeaveDetailsPage from "../pages/employee/MyLeaveDetailsPage";
+import LeaveApprovalDashboard from "../pages/admin/LeaveApprovalDashboard";
+import ComingSoon from "../components/ComingSoon";
+
 const router = createBrowserRouter([
   // --- Login Route (standalone, NO sidebar/layout) ---
   {
@@ -66,6 +73,25 @@ const router = createBrowserRouter([
 
           // --- Public Authenticated Area (All Roles) ---
           { path: "my-profile", element: <MyProfilePage /> },
+
+          // --- Leaves Management ---
+          {
+            path: "leaves",
+            children: [
+              { path: "apply", element: <LeaveApplicationForm /> },
+              { path: "acting", element: <ActingRequestsPage /> },
+              { 
+                path: "requests", 
+                element: <ProtectedRouter ProtectedRole="DEPT_HEAD"><LeaveApprovalDashboard /></ProtectedRouter> 
+              },
+              { path: "my-details", element: <MyLeaveDetailsPage /> }
+            ]
+          },
+
+          // --- Coming Soon / Featured Modules ---
+          { path: "attendance", element: <ComingSoon title="My Attendance Coming Soon" /> },
+          { path: "ot-calculator", element: <ComingSoon title="OT Calculator Coming Soon" /> },
+          { path: "vehicle-request", element: <ComingSoon title="Vehicle Request Coming Soon" /> },
 
           // --- Catch-all 404 ---
           { path: "*", element: <Error404Page /> },
