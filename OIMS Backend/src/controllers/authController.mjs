@@ -81,12 +81,23 @@ export const updatePassword = async (req, res, next) => {
 // ─── FORGOT PASSWORD ───────────────────────────────────────────────────────────
 export const forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    let user;
+    
+    // Determine target user: by ID (Admin trigger) or by Email (Self-service recovery)
+    if (req.params.id) {
+      // Security: Only Admins can trigger reset via ID
+      if (req.user?.role !== 'ADMIN') {
+        return res.status(403).json({ success: false, message: 'Administrative privileges required for manual reset triggers.' });
+      }
+      user = await User.findById(req.params.id);
+    } else {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ success: false, message: 'Please provide an email address.' });
+      user = await User.findOne({ email });
+    }
 
-    // 1) Get user based on POSTed email
-    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'Institutional record not found with this email.' });
+      return res.status(404).json({ success: false, message: 'Institutional record not found.' });
     }
 
     // 2) Generate the random reset token
