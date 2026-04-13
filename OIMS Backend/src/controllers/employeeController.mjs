@@ -7,10 +7,7 @@ export const createEmployee = async (req, res, next) => {
   try {
     const data = { ...req.body };
 
-    // Hash password
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 12);
-    }
+    // Password will be hashed by User model pre-save hook
 
     // Parse dates
     if (data.dateJoined) data.dateJoined = new Date(data.dateJoined);
@@ -148,10 +145,8 @@ export const updateEmployee = async (req, res, next) => {
   try {
     const data = { ...req.body };
 
-    // Hash password if being updated
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 12);
-    } else {
+    // Password will be hashed by User model pre-save hook if it exists
+    if (!data.password) {
       delete data.password; // Don't overwrite with empty
     }
 
