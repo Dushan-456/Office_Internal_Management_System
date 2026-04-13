@@ -1,31 +1,42 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import MobileBottomNav from "./MobileBottomNav";
 import { Box } from "@mui/material";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const MainLayout = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
   return (
     <Box sx={{ display: 'flex' }} className="min-h-screen mesh-gradient-bg w-full">
-      {/* Sidebar - Integrated Fixed */}
-      <Sidebar />
+      {/* Sidebar - Integrated Fixed/Drawer */}
+      <Sidebar 
+        mobileOpen={mobileOpen} 
+        onClose={() => setMobileOpen(false)} 
+      />
       
       {/* Main Content Area */}
       <Box 
         component="main" 
         sx={{ 
           flexGrow: 1, 
-          width: { sm: `calc(100% - 280px)` },
+          width: { xs: '100%', sm: `calc(100% - 280px)` },
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column'
         }}
       >
         {/* Top Header - Sticky */}
-        <Header />
+        <Header onToggleMenu={handleDrawerToggle} />
         
-        {/* Content Wrapper - Spacing for Header */}
-        <Box className="p-4 md:p-8 mt-16 flex-1">
+        {/* Content Wrapper - Spacing for Header & Bottom Nav */}
+        <Box className="p-4 md:p-8 mt-16 mb-20 md:mb-0 flex-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={window.location.pathname}
@@ -38,6 +49,8 @@ const MainLayout = () => {
             </motion.div>
           </AnimatePresence>
         </Box>
+
+        <MobileBottomNav />
       </Box>
     </Box>
   );
