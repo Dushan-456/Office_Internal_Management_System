@@ -137,7 +137,7 @@ const MyProfilePage = () => {
     <Box className="pb-20 max-w-7xl mx-auto px-4">
       <Box className="mb-10">
         <Typography variant="h4" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
-          My <span style={{ color: siteConfig.colors.primary }}>Portal</span>
+          My <span style={{ color: siteConfig.colors.primary }}>Profile</span>
         </Typography>
         <Typography variant="caption" className="text-slate-400 font-bold uppercase tracking-widest" sx={{ fontSize: '0.6rem' }}>
           Personal Command Center • Secure Access
@@ -213,14 +213,14 @@ const MyProfilePage = () => {
                 }} 
               />
              <Chip 
-                              label={emp.department?.replace(/_/g, ' ')} 
-                              sx={{ 
-                                bgcolor: `${siteConfig.colors.primary}10`, 
-                                color: siteConfig.colors.primary, 
-                                fontWeight: 800,
-                                borderRadius: '10px',
-                                mb: 2
-                              }} 
+               label={emp.department?.replace(/_/g, ' ')} 
+               sx={{ 
+                 bgcolor: `${siteConfig.colors.primary}10`, 
+                 color: siteConfig.colors.primary, 
+                 fontWeight: 800,
+                 borderRadius: '10px',
+                 mb: 2
+               }} 
                             />
 
               <Divider sx={{ mb: 1, opacity: 0.5 }} />
