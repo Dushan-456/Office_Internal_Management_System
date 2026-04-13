@@ -131,6 +131,22 @@ const LoginPage = () => {
               }}
             />
 
+            <Box className="flex justify-end -mt-2">
+              <Button 
+                onClick={() => navigate('/forgot-password')}
+                variant="text" 
+                size="small"
+                sx={{ 
+                  textTransform: 'none', 
+                  color: siteConfig.colors.primary, 
+                  fontWeight: 700,
+                  '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
+                }}
+              >
+                Forgot Password?
+              </Button>
+            </Box>
+
             <Button
               type="submit"
               variant="contained"
