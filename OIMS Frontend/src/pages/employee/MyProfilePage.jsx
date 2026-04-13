@@ -241,7 +241,7 @@ const MyProfilePage = () => {
                   </Box>
                   <Box>
                     <Typography variant="caption" className="text-slate-400 font-bold uppercase block">Official Email</Typography>
-                    <Typography variant="body2" className="font-bold truncate max-w-[200px]">{emp.email}</Typography>
+                    <Typography variant="body2" className="font-bold ">{emp.email}</Typography>
                   </Box>
                 </Box>
                 <Box className="flex items-center gap-4">
