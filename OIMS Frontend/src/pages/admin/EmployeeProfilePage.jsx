@@ -23,8 +23,22 @@ import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import KeyIcon from '@mui/icons-material/Key';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloseIcon from '@mui/icons-material/Close';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { motion } from 'framer-motion';
 import useAuthStore from '../../store/useAuthStore';
+import { leaveApi } from '../../api/leaveApi';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow 
+} from '@mui/material';
 
 const SectionHeader = ({ icon, title }) => (
   <Box className="flex items-center gap-3 mb-6">
@@ -70,15 +84,35 @@ const EmployeeProfilePage = () => {
   const [delOpen, setDelOpen] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [leaves, setLeaves] = useState([]);
+  const [leaveAnalytics, setLeaveAnalytics] = useState({ approved: 0, pending: 0, rejected: 0 });
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-  const SERVER_BASE = API_BASE.replace('/api/v1', '');
+  const ASSET_BASE = import.meta.env.VITE_ASSET_URL || 'http://localhost:5000';
 
   const fetchEmployee = async () => {
     try {
       setLoading(true);
       const res = await getEmployeeById(id);
       setEmployee(res.data.data.employee);
+
+      // Fetch Leave History for this employee
+      const leaveRes = await leaveApi.getEmployeeLeaves(id);
+      if (leaveRes.data?.success) {
+        const empLeaves = leaveRes.data.data;
+        setLeaves(empLeaves);
+
+        // Calculate YTD Analytics
+        const currentYear = new Date().getFullYear();
+        const ytdLeaves = empLeaves.filter(l => new Date(l.dateRange.from).getFullYear() === currentYear);
+        
+        setLeaveAnalytics({
+          approved: ytdLeaves.filter(l => l.status === 'approved').length,
+          pending: ytdLeaves.filter(l => l.status === 'pending_acting' || l.status === 'pending_approval').length,
+          rejected: ytdLeaves.filter(l => l.status === 'rejected').length
+        });
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -86,6 +120,32 @@ const EmployeeProfilePage = () => {
   useEffect(() => {
     fetchEmployee();
   }, [id]);
+
+  const handleOpenModal = (request) => {
+    setSelectedRequest(request);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedRequest(null);
+    setModalOpen(false);
+  };
+
+  const getActingStatusChip = (status) => {
+    switch (status) {
+      case 'approved': return <Chip label="APPROVED" size="small" color="success" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />;
+      case 'rejected': return <Chip label="REJECTED" size="small" color="error" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />;
+      default: return <Chip label="PENDING" size="small" color="warning" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />;
+    }
+  };
+
+  const getFinalStatusChip = (status) => {
+    switch (status) {
+      case 'approved': return <Chip label="APPROVED" size="small" color="success" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />;
+      case 'rejected': return <Chip label="REJECTED" size="small" color="error" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />;
+      default: return <Chip label="PENDING" size="small" color="warning" sx={{ fontWeight: 800, fontSize: '0.6rem' }} />;
+    }
+  };
 
   const handleAdminReset = async () => {
     setResetLoading(true);
@@ -120,6 +180,7 @@ const EmployeeProfilePage = () => {
   
   const roleStyles = {
     ADMIN: { bg: '#fee2e2', color: '#ef4444', label: 'System Administrator', icon: <VerifiedUserIcon /> },
+    TOP_ADMIN: { bg: '#fee2e2', color: '#b88909ff', label: 'Top Management', icon: <VerifiedUserIcon /> },
     DEPT_HEAD: { bg: '#ede9fe', color: '#8b5cf6', label: 'Department Head', icon: <WorkHistoryIcon /> },
     EMPLOYEE: { bg: '#d1fae5', color: '#10b981', label: 'Staff Member', icon: <BadgeOutlinedIcon /> },
   };
@@ -180,7 +241,7 @@ const EmployeeProfilePage = () => {
               
               <Box className="relative z-10 -mt-20 mb-6 px-8 flex flex-col items-center w-full">
                 <Avatar 
-                  src={emp.profilePicture ? `${SERVER_BASE}${emp.profilePicture}` : undefined}
+                  src={emp.profilePicture ? `${ASSET_BASE}${emp.profilePicture}` : undefined}
                   sx={{ 
                     width: 160, 
                     height: 160, 
@@ -427,8 +488,265 @@ const EmployeeProfilePage = () => {
               </Box>
             </Paper>
           </motion.div>
+          {/* Leave Usage Analytics */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <Paper className="glass-card p-8 rounded-[3rem]">
+              <SectionHeader icon={<WorkHistoryIcon />} title="Leave Usage Analytics" />
+              <Grid container spacing={3}>
+                {[
+                  { label: 'Approved', value: leaveAnalytics.approved, color: '#10b981', icon: <CheckCircleIcon /> },
+                  { label: 'Pending', value: leaveAnalytics.pending, color: '#f59e0b', icon: <AssignmentTurnedInIcon /> },
+                  { label: 'Rejected', value: leaveAnalytics.rejected, color: '#ef4444', icon: <ErrorOutlineIcon /> }
+                ].map((stat, idx) => (
+                  <Grid item xs={12} sm={4} key={idx}>
+                    <Box className="p-5 rounded-[1.5rem] border border-slate-100 flex flex-col items-center text-center ">
+                       <Box className="w-10 h-10 rounded-full flex items-center justify-center mb-3" sx={{ bgcolor: `${stat.color}15`, color: stat.color }}>
+                          {React.cloneElement(stat.icon, { sx: { fontSize: 20 } })}
+                       </Box>
+                       <Typography variant="h4" className="font-black" sx={{ color: 'var(--text-heading)' }}>{stat.value}</Typography>
+                       <Typography variant="caption" className="font-black uppercase tracking-widest text-slate-400 mt-1">{stat.label}</Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+          </motion.div>
+
+          {/* Detailed Leave History Table */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+          >
+            <Paper className="glass-card p-8 rounded-[3rem] overflow-hidden">
+               <Box className="flex items-center justify-between mb-8">
+                  <SectionHeader icon={<EventNoteIcon />} title="Full Leave History" />
+                  <Typography variant="caption" className="font-black uppercase tracking-widest text-slate-400">Total: {leaves.length} Applications</Typography>
+               </Box>
+
+               {leaves.length === 0 ? (
+                 <Box className="text-center py-10 opacity-40">
+                    <EventNoteIcon sx={{ fontSize: 40, mb: 1 }} />
+                    <Typography variant="body2" className="font-bold">No historical leave data available.</Typography>
+                 </Box>
+               ) : (
+                 <TableContainer className="rounded-[2rem] overflow-hidden border border-slate-50">
+                   <Table>
+                     <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
+                       <TableRow>
+                         <TableCell className="font-bold" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Type & Cat.</TableCell>
+                         <TableCell className="font-bold">Duration</TableCell>
+                         <TableCell className="font-bold text-center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Acting</TableCell>
+                         <TableCell className="font-bold text-center">Status</TableCell>
+                       </TableRow>
+                     </TableHead>
+                     <TableBody>
+                        {leaves.map((l) => (
+                          <TableRow 
+                            key={l.id} 
+                            hover 
+                            onClick={() => handleOpenModal(l)}
+                            sx={{ cursor: 'pointer' }}
+                          >
+                             <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                                <Typography variant="body2" className="font-bold">{l.leaveType}</Typography>
+                                <Typography variant="caption" className="text-slate-500">{l.category}</Typography>
+                             </TableCell>
+                             <TableCell>
+                                <Typography variant="body2" className="font-medium">
+                                  {formatDate(l.dateRange.from)} - {formatDate(l.dateRange.to)}
+                                </Typography>
+                                <Typography variant="caption" className="font-black text-slate-400">{l.totalDays} Days</Typography>
+                             </TableCell>
+                             <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                                <Chip 
+                                  label={l.actingOfficerStatus?.toUpperCase()} 
+                                  size="small" 
+                                  variant="outlined"
+                                  color={l.actingOfficerStatus === 'approved' ? 'success' : l.actingOfficerStatus === 'rejected' ? 'error' : 'warning'}
+                                  sx={{ fontWeight: 800, fontSize: '0.6rem' }}
+                                />
+                             </TableCell>
+                             <TableCell align="center">
+                                <Chip 
+                                  label={l.status?.toUpperCase().replace('_', ' ')} 
+                                  size="small" 
+                                  color={l.status === 'approved' ? 'success' : l.status === 'rejected' ? 'error' : 'warning'}
+                                  sx={{ fontWeight: 800, fontSize: '0.6rem' }}
+                                />
+                             </TableCell>
+                          </TableRow>
+                        ))}
+                     </TableBody>
+                   </Table>
+                 </TableContainer>
+               )}
+            </Paper>
+          </motion.div>
         </Box>
       </Box>
+
+      {/* Read-Only Leave Details Modal */}
+      <Dialog 
+        open={modalOpen} 
+        onClose={handleCloseModal}
+        fullWidth
+        maxWidth="sm"
+        slotProps={{
+          backdrop: {
+            sx: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }
+          }
+        }}
+        PaperProps={{
+          className: "glass-card rounded-[2rem]",
+          sx: { p: 1 }
+        }}
+      >
+        <DialogTitle className="font-black text-2xl flex justify-between items-center">
+          Leave Details
+          <IconButton onClick={handleCloseModal} sx={{ color: 'text.secondary' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {selectedRequest && (
+            <Box className="space-y-6 py-2">
+              <Box className="flex items-center gap-4 mb-2">
+                <Avatar 
+                  src={selectedRequest.applicantId?.profilePicture ? `${ASSET_BASE}${selectedRequest.applicantId.profilePicture}` : undefined} 
+                  sx={{ width: 60, height: 60, bgcolor: siteConfig.colors.primary }}
+                >
+                   {selectedRequest.applicantId?.firstName?.[0]}
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" className="font-bold">{selectedRequest.applicantId?.firstName} {selectedRequest.applicantId?.lastName}</Typography>
+                  <Typography variant="body2" color="textSecondary">{selectedRequest.applicantId?.department} • History View</Typography>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <Box className="grid grid-cols-2 gap-6">
+                <Box>
+                  <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Leave Type</Typography>
+                  <Typography variant="body1" className="font-bold">{selectedRequest.leaveType}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Category</Typography>
+                  <Typography variant="body1" className="font-bold">{selectedRequest.category}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Duration</Typography>
+                  <Typography variant="body2" className="font-bold">
+                    {formatDate(selectedRequest.dateRange.from)} - {formatDate(selectedRequest.dateRange.to)}
+                  </Typography>
+                  <Typography variant="caption" className="font-black text-indigo-500" >{selectedRequest.totalDays} Total Days</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Acting Officer</Typography>
+                  <Typography variant="body2" className="font-bold block mb-1">
+                    {selectedRequest.actingOfficerId?.firstName} {selectedRequest.actingOfficerId?.lastName}
+                  </Typography>
+                  {getActingStatusChip(selectedRequest.actingOfficerStatus)}
+                </Box>
+              </Box>
+
+              <Box className="mt-2 p-5 rounded-[1.5rem] flex items-center justify-between" sx={{ 
+                bgcolor: selectedRequest.status === 'approved' ? 'rgba(34, 197, 94, 0.08)' : selectedRequest.status === 'rejected' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)', 
+                border: '1px solid', 
+                borderColor: selectedRequest.status === 'approved' ? 'rgba(34, 197, 94, 0.2)' : selectedRequest.status === 'rejected' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)' 
+              }}>
+                 <Box>
+                    <Typography variant="caption" className="font-bold uppercase tracking-widest" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : selectedRequest.status === 'rejected' ? 'error.main' : 'warning.main' }}>Current Status</Typography>
+                    <Typography variant="h5" className="font-black" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : selectedRequest.status === 'rejected' ? 'error.main' : 'warning.main', textTransform: 'uppercase' }}>{selectedRequest.status?.replace('_', ' ')}</Typography>
+                 </Box>
+                 <Chip label="RECORD" size="small" variant="filled" sx={{ fontWeight: 900, fontSize: '0.6rem', bgcolor: selectedRequest.status === 'approved' ? 'success.main' : selectedRequest.status === 'rejected' ? 'error.main' : 'warning.main', color: 'white' }} />
+              </Box>
+
+              {selectedRequest.rejectionReason && (
+                <Box>
+                  <Typography variant="caption" className="font-bold text-red-400 uppercase tracking-widest">Rejection Feedback</Typography>
+                  <Paper variant="outlined" sx={{ p: 2, mt: 1, bgcolor: 'rgba(239, 68, 68, 0.02)', borderRadius: '16px', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+                    <Typography variant="body2" color="error.main" sx={{ fontWeight: 600 }}>{selectedRequest.rejectionReason}</Typography>
+                  </Paper>
+                </Box>
+              )}
+
+              <Box>
+                <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Reason for Application</Typography>
+                <Paper variant="outlined" sx={{ p: 2, mt: 1, bgcolor: 'rgba(0,0,0,0.01)', borderRadius: '16px', borderColor: 'divider' }}>
+                  <Typography variant="body2" className="font-medium" sx={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{selectedRequest.reason}</Typography>
+                </Paper>
+              </Box>
+
+              <Box>
+                <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Contact Address while on leave</Typography>
+                <Paper variant="outlined" sx={{ p: 2, mt: 1, bgcolor: 'rgba(0,0,0,0.01)', borderRadius: '16px', borderColor: 'divider' }}>
+                  <Typography variant="body2" className="font-medium" sx={{ wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{selectedRequest.addressWhileOnLeave}</Typography>
+                </Paper>
+              </Box>
+
+              {selectedRequest.attachments && (
+                <Box>
+                  <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Supporting Documents</Typography>
+                  <Box className="mt-2">
+                    <Paper 
+                      elevation={0}
+                      variant="outlined"
+                      sx={{ 
+                        p: 2, 
+                        bgcolor: `${siteConfig.colors.primary}05`, 
+                        borderRadius: '16px', 
+                        borderColor: `${siteConfig.colors.primary}20`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        transition: '0.2s',
+                        '&:hover': { bgcolor: `${siteConfig.colors.primary}10`, transform: 'translateY(-2px)' }
+                      }}
+                      onClick={() => window.open(`${ASSET_BASE}${selectedRequest.attachments}`, '_blank')}
+                    >
+                      <Box className="flex items-center gap-3 overflow-hidden">
+                        <Box className="p-2 rounded-lg bg-indigo-100/50" sx={{ color: siteConfig.colors.primary }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          View Attachment
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" sx={{ color: siteConfig.colors.primary, fontWeight: 800, whiteSpace: 'nowrap', ml: 2 }}>
+                        OPEN DOC
+                      </Typography>
+                    </Paper>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            fullWidth 
+            variant="contained" 
+            onClick={handleCloseModal}
+            sx={{ 
+              borderRadius: '16px', 
+              textTransform: 'none', 
+              fontWeight: 800, 
+              py: 1.5,
+              bgcolor: siteConfig.colors.primary,
+              '&:hover': { bgcolor: siteConfig.colors.secondary }
+            }}
+          >
+            Close Details
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Dialog */}
       <Dialog 
