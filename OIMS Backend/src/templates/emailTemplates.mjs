@@ -51,6 +51,15 @@ export const getResetPasswordTemplate = (resetUrl, firstName) => {
         .content h2 {
           color: #0f172a;
           margin-top: 0;
+          text-align: center;
+        }
+        .content p {
+          text-align: center;
+        }
+        .content h2 {
+          color: #0f172a;
+          margin-top: 0;
+          text-align: center;
         }
         .btn {
           display: inline-block;
