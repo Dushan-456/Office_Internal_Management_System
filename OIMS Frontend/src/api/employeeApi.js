@@ -53,3 +53,7 @@ export const forgotPassword = (email) => {
 export const resetPassword = (token, data) => {
   return api.post(`/auth/reset-password/${token}`, data);
 };
+
+export const adminResetPassword = (id) => {
+  return api.post(`/auth/admin-reset-password/${id}`);
+};
