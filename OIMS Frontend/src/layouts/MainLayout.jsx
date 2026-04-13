@@ -26,7 +26,7 @@ const MainLayout = () => {
         component="main" 
         sx={{ 
           flexGrow: 1, 
-          width: { xs: '100%', sm: `calc(100% - 280px)` },
+          width: { xs: '100%', sm: `calc(100% - 280)` },
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column'
