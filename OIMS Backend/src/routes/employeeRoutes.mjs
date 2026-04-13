@@ -19,6 +19,15 @@ router.use(protect);
 
 // Routes accessible by all authenticated users
 router.get("/me", getMe);
+router.get("/directory", async (req, res) => {
+  try {
+    const { default: User } = await import("../models/User.mjs");
+    const users = await User.find().select("firstName lastName department role email");
+    res.status(200).json({ success: true, count: users.length, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error fetching directory" });
+  }
+});
 
 // Stats — admin only (must be before /:id to avoid conflict)
 router.get("/stats", restrictTo("ADMIN"), getStats);
