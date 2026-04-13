@@ -1,45 +1,57 @@
-import nodemailer from "nodemailer";
-import "dotenv/config";
+import nodemailer from 'nodemailer';
 
+/**
+ * Institutional Email Service
+ * Configured for Gmail SMTP with extensibility for future notifications.
+ */
+class EmailService {
+  constructor() {
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false // Helps with some local dev environments
+      }
+    });
+  }
 
-// Configurations email transporter
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,    //  Gmail address
-        pass: process.env.EMAIL_APP_PASS    //  App Password 
-    }
-});
-
-
-// transporter for production ( via SMTP):
-// const transporter = nodemailer.createTransport({
-//     host: process.env.SMTP_HOST, 
-//     port: process.env.SMTP_PORT, 
-//     secure: process.env.SMTP_SECURE === 'true', //  'true' for 465 (SSL) or 'false' for 587 (TLS)
-//     auth: {
-//         user: process.env.SMTP_USER, 
-//         pass: process.env.SMTP_PASS, 
-//     },
-// });
-
-
-export const sendEmail = async (to, subject, text, html) => {
-  try {
+  /**
+   * Generic mail sender
+   * @param {Object} options { email, subject, text, html }
+   */
+  async sendEmail(options) {
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to,
-      subject,
-      text,
-      html,
+      from: process.env.EMAIL_FROM || '"OIMS Support" <noreply@oims-portal.com>',
+      to: options.email,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent: %s", info.messageId);
-    return info;
-  } catch (error) {
-    console.error("Error sending email:", error);
-    throw new Error("Failed to send email.");
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`[EmailService] Dispatch Successful: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      console.error(`[EmailService] Dispatch Failed: ${error.message}`);
+      throw new Error('Email delivery failed. Please check SMTP configuration.');
+    }
   }
-};
 
+  /**
+   * Specialized Password Reset Dispatcher
+   */
+  async sendPasswordReset(user, resetUrl, html) {
+    return this.sendEmail({
+      email: user.email,
+      subject: 'Security Alert: Password Reset Requested',
+      text: `Please use the following link to reset your password: ${resetUrl}`,
+      html: html
+    });
+  }
+}
+
+export default new EmailService();
