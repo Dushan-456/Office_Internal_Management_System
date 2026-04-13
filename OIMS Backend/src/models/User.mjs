@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 // ─── Enum Definitions (Single Source of Truth) ─────────────────────────────────
 export const EMPLOYEE_TYPES = [
@@ -134,6 +136,10 @@ const userSchema = new mongoose.Schema(
       default: "EMPLOYEE",
     },
     qualifications: { type: mongoose.Schema.Types.Mixed, default: null },
+
+    // Security/Reset
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
   {
     timestamps: true,
@@ -156,6 +162,30 @@ const userSchema = new mongoose.Schema(
     },
   }
 );
+
+// ─── Middleware ────────────────────────────────────────────────────────────────
+userSchema.pre("save", async function (next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified("password")) return next();
+
+  // Hash the password with cost of 12
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+// ─── Methods ───────────────────────────────────────────────────────────────────
+userSchema.methods.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  return resetToken;
+};
 
 const User = mongoose.model("User", userSchema);
 export default User;
