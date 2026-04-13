@@ -45,3 +45,11 @@ export const getEnums = () => {
 export const updatePassword = (data) => {
   return api.patch("/auth/update-password", data);
 };
+
+export const forgotPassword = (email) => {
+  return api.post("/auth/forgot-password", { email });
+};
+
+export const resetPassword = (token, data) => {
+  return api.post(`/auth/reset-password/${token}`, data);
+};
