@@ -52,6 +52,22 @@ class EmailService {
       html: html
     });
   }
+  /**
+   * Leave Management Dispatchers
+   */
+  async sendLeaveRequestActingEmail(email, actingOfficerName, applicantName) {
+    // Requires importing getLeaveRequestActingTemplate if used within emailService
+    // We will dynamically import or pass HTML. It's better to pass HTML from controller.
+  }
+
+  // Simplified: let's just make a generic sendHtmlEmail
+  async sendHtmlEmail(email, subject, html) {
+    return this.sendEmail({
+      email,
+      subject,
+      html
+    });
+  }
 }
 
 export default new EmailService();
