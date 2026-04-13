@@ -75,7 +75,7 @@ const AllEmployeesPage = () => {
   };
 
   return (
-    <Box>
+    <Box sx={{ px: { xs: 1, md: 0 } }}>
       <Box className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <Typography variant="h4" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
           {isDeptHead ? `${currentUser.department?.replace(/_/g, ' ')} ` : 'All '}
@@ -112,7 +112,7 @@ const AllEmployeesPage = () => {
         {isAdmin && (
           <TextField 
             select
-            label="Placement"
+            label="Filter by Department"
             size="small"
             sx={{ minWidth: 200 }}
             value={department}
@@ -126,14 +126,14 @@ const AllEmployeesPage = () => {
       </Paper>
 
       {/* Modern Table */}
-      <Paper className="glass-card rounded-[2.5rem] overflow-hidden">
-        <TableContainer>
-          <Table>
+      <Paper className="glass-card rounded-[2.5rem] overflow-hidden w-full">
+        <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table sx={{ minWidth: { xs: 300, sm: 500, md: 700 } }}>
             <TableHead>
               <TableRow sx={{ bgcolor: 'rgba(99, 102, 241, 0.05)' }}>
                 <TableCell sx={{ fontWeight: 800, color: '#475569', py: 3 }}>Identity</TableCell>
-                <TableCell sx={{ fontWeight: 800, color: '#475569' }}>Placement</TableCell>
-                <TableCell sx={{ fontWeight: 800, color: '#475569' }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 800, color: '#475569', display: { xs: 'none', md: 'table-cell' } }}>Department</TableCell>
+                <TableCell sx={{ fontWeight: 800, color: '#475569' , display: { xs: 'none', md: 'table-cell' } }}>Role</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', pr: 4 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -151,42 +151,42 @@ const AllEmployeesPage = () => {
                     transition: 'background-color 0.2s'
                   }}
                 >
-                  <TableCell>
-                    <Box className="flex items-center gap-4">
+                   <TableCell sx={{ px: { xs: 1, sm: 2 } }}>
+                    <Box className="flex items-center gap-2 md:gap-4">
                       <Avatar 
                         src={emp.profilePicture ? `${SERVER_BASE}${emp.profilePicture}` : undefined} 
                         sx={{ 
-                          width: 44, 
-                          height: 44, 
+                          width: { xs: 28, sm: 44 }, 
+                          height: { xs: 28, sm: 44 }, 
                           bgcolor: siteConfig.colors.primary, 
                           color: 'white',
                           fontWeight: 800,
-                          fontSize: '1rem',
+                          fontSize: { xs: '0.7rem', sm: '1rem' },
                           shadow: 1 
                         }}
                       >
                         {emp.firstName?.[0]}
                       </Avatar>
                       <Box>
-                        <Typography variant="body2" className="font-bold" sx={{ color: 'var(--text-heading)' }}>{emp.firstName} {emp.lastName}</Typography>
-                        <Typography variant="caption" className="text-slate-400 font-mono text-[0.65rem]">{emp.employeeNo}</Typography>
+                        <Typography variant="body2" className="font-bold text-[0.75rem] md:text-sm" sx={{ color: 'var(--text-heading)' }}>{emp.firstName} {emp.lastName}</Typography>
+                        <Typography variant="caption" className="text-slate-400 font-mono text-[0.55rem] md:text-[0.65rem]">{emp.employeeNo}</Typography>
                       </Box>
                     </Box>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                     <Typography variant="body2" className="font-bold truncate max-w-[150px]" sx={{ color: 'var(--text-muted)' }}>{emp.department?.replace(/_/g, ' ')}</Typography>
                     <Typography variant="caption" className="text-slate-400 block">{emp.jobTitle?.replace(/_/g, ' ')}</Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                     <Chip 
                       label={emp.role} 
                       size="small"
                       sx={{ 
                         fontWeight: 800, 
                         fontSize: '0.6rem', 
-                        bgcolor: emp.role === 'ADMIN' ? '#fef2f2' : '#f0fdf4',
-                        color: emp.role === 'ADMIN' ? '#ef4444' : '#16a34a',
-                        border: `1px solid ${emp.role === 'ADMIN' ? '#fecaca' : '#bbf7d0'}`
+                        bgcolor: emp.role === 'ADMIN' ? '#fef2f2' : emp.role === 'DEPT_HEAD' ? '#fef2f2' : '#f0fdf4',
+                        color: emp.role === 'ADMIN' ? '#ef4444' : emp.role === 'DEPT_HEAD' ? '#df9d0fff' : '#16a34a',
+                        border: `1px solid ${emp.role === 'ADMIN' ? '#fecaca' : emp.role === 'DEPT_HEAD' ? '#fecaca' : '#bbf7d0'}`
                       }}
                     />
                   </TableCell>
@@ -232,7 +232,26 @@ const AllEmployeesPage = () => {
       </Paper>
 
       {/* Delete Confirmation */}
-      <Dialog open={delDialog.open} onClose={() => setDelDialog({ open: false })} PaperProps={{ sx: { borderRadius: '25px', p: 1 } }}>
+      <Dialog 
+        open={delDialog.open} 
+        onClose={() => setDelDialog({ open: false })} 
+        slotProps={{ 
+          backdrop: { 
+            sx: { 
+              backdropFilter: 'blur(4px)', 
+              backgroundColor: 'rgba(15, 23, 42, 0.5)' 
+            } 
+          } 
+        }}
+        PaperProps={{ 
+          sx: { 
+            borderRadius: '25px', 
+            p: 1,
+            bgcolor: 'var(--bg-main)', // Solid background
+            backgroundImage: 'none' // Remove any MUI overlays
+          } 
+        }}
+      >
         <DialogTitle className="font-black" sx={{ color: 'var(--text-heading)' }}>Confirm Deletion</DialogTitle>
         <DialogContent>Permanently remove <strong>{delDialog.name}</strong> from the institutional directory?</DialogContent>
         <DialogActions sx={{ p: 3 }}>
