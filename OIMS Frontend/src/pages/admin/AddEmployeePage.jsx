@@ -20,6 +20,7 @@ const qualificationsList = [
 
 const roleLabels = {
   ADMIN: 'System Administrator',
+  TOP_ADMIN: 'Top Management',
   DEPT_HEAD: 'Department Head',
   EMPLOYEE: 'Staff Member',
 };
