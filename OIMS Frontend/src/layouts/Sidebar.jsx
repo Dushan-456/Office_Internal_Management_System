@@ -20,7 +20,7 @@ import { motion } from 'framer-motion';
 
 const drawerWidth = 280;
 
-const Sidebar = () => {
+const Sidebar = ({ mobileOpen, onClose }) => {
   const { user } = useAuthStore();
   const location = useLocation();
   const role = user?.role;
@@ -64,77 +64,108 @@ const Sidebar = () => {
     { text: 'My Profile', icon: <AccountCircleIcon />, path: '/my-profile', show: true },
   ];
 
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: drawerWidth,
-        display: { xs: 'none', sm: 'block' },
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-          borderRight: 'none',
-          boxShadow: 'none',
-          background: 'transparent',
-        },
-      }}
-    >
-      <Box className="glass-sidebar h-full flex flex-col overflow-x-hidden">
-        {/* Logo Section */}
-        <Toolbar className="px-6 py-8 flex flex-col items-start gap-4 h-auto">
-          <Box className="flex items-center gap-3">
-            <motion.img 
-              src={siteConfig.logo} 
-              alt="Logo" 
-              className="w-10 h-10 rounded-xl shadow-lg"
-              whileHover={{ rotate: 5, scale: 1.05 }}
-            />
-            <Box>
-              <Typography variant="h6" className="font-extrabold leading-none tracking-tight" sx={{ color: 'var(--text-heading)' }}>
-                {siteConfig.name.split(' ')[0]}
-                <span style={{ color: siteConfig.colors.primary }}>{siteConfig.name.split(' ')[1]}</span>
-              </Typography>
-              <Typography variant="caption" className="text-slate-400 font-medium uppercase tracking-tighter">
-                Management System
-              </Typography>
-            </Box>
+  const drawerContent = (
+    <Box className="glass-sidebar h-full flex flex-col overflow-x-hidden">
+      {/* Logo Section */}
+      <Toolbar className="px-6 py-8 flex flex-col items-start gap-4 h-auto">
+        <Box className="flex items-center gap-3">
+          <motion.img 
+            src={siteConfig.logo} 
+            alt="Logo" 
+            className="w-10 h-10 rounded-xl shadow-lg"
+            whileHover={{ rotate: 5, scale: 1.05 }}
+          />
+          <Box>
+            <Typography variant="h6" className="font-extrabold leading-none tracking-tight" sx={{ color: 'var(--text-heading)' }}>
+              {siteConfig.name.split(' ')[0]}
+              <span style={{ color: siteConfig.colors.primary }}>{siteConfig.name.split(' ')[1]}</span>
+            </Typography>
+            <Typography variant="caption" className="text-slate-400 font-medium uppercase tracking-tighter">
+              Management System
+            </Typography>
           </Box>
-        </Toolbar>
-
-        <Box className="flex-1 mt-4">
-          <List disablePadding>
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-                
-              return item.show && (
-                <ListItem
-                  key={item.text}
-                  component={NavLink}
-                  to={item.path}
-                  sx={navItemStyle(isActive)}
-                >
-                <ListItemIcon sx={{ 
-                  minWidth: 40, 
-                  color: 'inherit',
-                  transition: 'color 0.3s'
-                }}>
-                  {React.cloneElement(item.icon, { sx: { fontSize: 22 } })}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{ 
-                    fontWeight: 700, 
-                    fontSize: '0.875rem', 
-                    letterSpacing: '-0.01em'
-                  }}
-                />
-              </ListItem>
-            );})}
-          </List>
         </Box>
+      </Toolbar>
 
+      <Box className="flex-1 mt-4">
+        <List disablePadding>
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+              
+            return item.show && (
+              <ListItem
+                key={item.text}
+                component={NavLink}
+                to={item.path}
+                onClick={onClose}
+                sx={navItemStyle(isActive)}
+              >
+              <ListItemIcon sx={{ 
+                minWidth: 40, 
+                color: 'inherit',
+                transition: 'color 0.3s'
+              }}>
+                {React.cloneElement(item.icon, { sx: { fontSize: 22 } })}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{ 
+                  fontWeight: 700, 
+                  fontSize: '0.875rem', 
+                  letterSpacing: '-0.01em'
+                }}
+              />
+            </ListItem>
+          );})}
+        </List>
       </Box>
-    </Drawer>
+    </Box>
+  );
+
+  return (
+    <Box
+      component="nav"
+      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+    >
+      {/* Mobile Drawer (Temporary) */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: drawerWidth,
+            border: 'none',
+            bgcolor: 'transparent'
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* Desktop Drawer (Permanent) */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', sm: 'block' },
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            borderRight: 'none',
+            boxShadow: 'none',
+            background: 'transparent',
+          },
+        }}
+        open
+      >
+        {drawerContent}
+      </Drawer>
+    </Box>
   );
 };
 
