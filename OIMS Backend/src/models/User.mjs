@@ -32,7 +32,7 @@ export const JOB_CATEGORIES = [
 
 export const GRADES = ["Grade_I", "Grade_II", "Grade_III", "NA"];
 
-export const ROLES = ["ADMIN", "DEPT_HEAD", "EMPLOYEE"];
+export const ROLES = ["ADMIN", "TOP_ADMIN", "DEPT_HEAD", "EMPLOYEE"];
 
 export const JOB_TITLES = [
   "Assistant_Bursar",
@@ -70,6 +70,8 @@ export const JOB_TITLES = [
   "Work_Supervisor",
   "Programme_Assistant",
   "Research_Assistant",
+  "Deputy_Director",
+  "Director",
 ];
 
 // ─── Schema ────────────────────────────────────────────────────────────────────
@@ -140,6 +142,12 @@ const userSchema = new mongoose.Schema(
     // Security/Reset
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+
+    // Leaves
+    annualLeaveBalance: {
+      type: Number,
+      default: 45,
+    },
   },
   {
     timestamps: true,
