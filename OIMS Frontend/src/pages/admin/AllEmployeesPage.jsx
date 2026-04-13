@@ -131,10 +131,10 @@ const AllEmployeesPage = () => {
           <Table sx={{ minWidth: { xs: 300, sm: 500, md: 700 } }}>
             <TableHead>
               <TableRow sx={{ bgcolor: 'rgba(99, 102, 241, 0.05)' }}>
-                <TableCell sx={{ fontWeight: 800, color: '#475569', py: 3 }}>Identity</TableCell>
-                <TableCell sx={{ fontWeight: 800, color: '#475569', display: { xs: 'none', md: 'table-cell' } }}>Department</TableCell>
-                <TableCell sx={{ fontWeight: 800, color: '#475569' , display: { xs: 'none', md: 'table-cell' } }}>Role</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 800, color: '#475569', pr: 4 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 800,  py: 3 }}>Identity</TableCell>
+                <TableCell sx={{ fontWeight: 800,  display: { xs: 'none', md: 'table-cell' } }}>Department</TableCell>
+                <TableCell sx={{ fontWeight: 800,  display: { xs: 'none', md: 'table-cell' } }}>Role</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 800, pr: 4 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
