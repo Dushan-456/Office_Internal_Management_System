@@ -12,7 +12,7 @@
     --text-heading: #1e293b;
     --text-muted: #475569;
     --glass-bg: rgba(255, 255, 255, 0.7);
-    --input-bg: rgba(255, 255, 255, 0.9);
+    --input-bg: rgba(255, 255, 255, 1);
     --glass-border: rgba(255, 255, 255, 0.5);
     --glass-blur: 12px;
   }
@@ -23,7 +23,7 @@
     --text-heading: #f1f5f9;
     --text-muted: #94a3b8;
     --glass-bg: rgba(15, 23, 42, 0.6);
-    --input-bg: rgba(255, 255, 255, 0.05);
+    --input-bg: rgba(30, 41, 59, 1);
     --glass-border: rgba(255, 255, 255, 0.1);
     --glass-blur: 16px;
   }
@@ -33,6 +33,14 @@
     color: var(--text-main);
     background-color: var(--bg-main);
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Global MUI Dropdown fix */
+  .MuiMenu-paper, .MuiPopover-paper {
+    background-color: var(--bg-main) !important;
+    background-image: none !important;
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
   }
 }
 
