@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getEmployeeById, deleteEmployee } from '../../api/employeeApi';
+import { getEmployeeById, deleteEmployee, adminResetPassword } from '../../api/employeeApi';
 import { siteConfig } from '../../config/siteConfig';
 import {
   Box, Typography, Paper, CircularProgress, Avatar, Chip, IconButton,
@@ -21,6 +21,8 @@ import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import KeyIcon from '@mui/icons-material/Key';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { motion } from 'framer-motion';
 import useAuthStore from '../../store/useAuthStore';
 
@@ -66,20 +68,37 @@ const EmployeeProfilePage = () => {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [delOpen, setDelOpen] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
   const SERVER_BASE = API_BASE.replace('/api/v1', '');
 
+  const fetchEmployee = async () => {
+    try {
+      setLoading(true);
+      const res = await getEmployeeById(id);
+      setEmployee(res.data.data.employee);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await getEmployeeById(id);
-        setEmployee(res.data.data.employee);
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    };
-    fetch();
+    fetchEmployee();
   }, [id]);
+
+  const handleAdminReset = async () => {
+    setResetLoading(true);
+    try {
+      await adminResetPassword(id);
+      setResetSent(true);
+      setTimeout(() => setResetSent(false), 5000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   if (loading) return (
     <Box className="h-[60vh] flex flex-col justify-center items-center gap-4">
@@ -245,38 +264,64 @@ const EmployeeProfilePage = () => {
               </Stack>
 
               {isAdmin && (
-                <Box className="mt-8 px-8 w-full flex  gap-3">
+                <Box className="mt-8 px-4 w-full flex items-center gap-3">
                   <Button 
                     fullWidth
                     onClick={() => navigate(`/employees/edit/${id}`)}
-                    variant="contained"
+                    variant="outlined"
                     startIcon={<EditOutlinedIcon />}
-                    className="btn-premium"
                     sx={{ 
-                      borderRadius: '15px', 
+                      flex: 1,
+                      borderRadius: '16px', 
                       textTransform: 'none', 
                       fontWeight: 800, 
-                      py: 1.5
+                      py: 1.6,
+                      fontSize: '0.875rem'
                     }}
                   >
-                    Edit  
+                    Edit
                   </Button>
+                  
                   <Button 
                     fullWidth
                     onClick={() => setDelOpen(true)}
                     variant="outlined"
                     startIcon={<DeleteOutlineIcon />}
                     sx={{ 
-                      borderRadius: '15px', 
+                      flex: 1,
+                      borderRadius: '16px', 
                       textTransform: 'none', 
                       fontWeight: 800, 
-                      py: 1.5,
+                      py: 1.6,
+                      fontSize: '0.875rem',
                       borderColor: '#fee2e2',
                       color: '#ef4444',
                       '&:hover': { bgcolor: '#fef2f2', borderColor: '#ef4444' }
                     }}
                   >
-                    Delete 
+                    Delete
+                  </Button>
+
+                  <Button 
+                    fullWidth
+                    onClick={handleAdminReset}
+                    disabled={resetLoading || resetSent}
+                    variant="outlined"
+                    startIcon={resetSent ? <CheckCircleIcon sx={{ color: '#10b981' }} /> : <KeyIcon />}
+                    sx={{ 
+                      flex: 1,
+                      borderRadius: '16px', 
+                      textTransform: 'none', 
+                      fontWeight: 800, 
+                      py: 1.6,
+                      fontSize: '0.875rem',
+                      color: resetSent ? '#10b981' : siteConfig.colors.primary,
+                      borderColor: resetSent ? '#10b981' : 'var(--glass-border)',
+                      bgcolor: resetSent ? '#d1fae540' : 'transparent',
+                      '&:hover': { bgcolor: resetSent ? '#d1fae560' : `${siteConfig.colors.primary}08` }
+                    }}
+                  >
+                    {resetLoading ? <CircularProgress size={20} color="inherit" /> : resetSent ? 'Sent!' : 'Reset'}
                   </Button>
                 </Box>
               )}
