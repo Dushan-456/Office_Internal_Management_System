@@ -391,7 +391,7 @@ const AddEmployeePage = () => {
                       sx={{ color: siteConfig.colors.primary, '&.Mui-checked': { color: siteConfig.colors.primary } }}
                     />
                   }
-                  label={<Typography variant="body2" className="font-semibold text-slate-600 uppercase tracking-tight" style={{ fontSize: '0.75rem' }}>{formatLabel(qual)}</Typography>}
+                  label={<Typography variant="body2" className="font-semibold uppercase tracking-tight" style={{ fontSize: '0.75rem' }}>{formatLabel(qual)}</Typography>}
                 />
               ))}
             </Box>
