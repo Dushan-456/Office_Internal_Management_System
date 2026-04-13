@@ -11,12 +11,22 @@ import AllEmployeesPage from "../pages/admin/AllEmployeesPage";
 import EmployeeProfilePage from "../pages/admin/EmployeeProfilePage";
 import MyProfilePage from "../pages/employee/MyProfilePage";
 import EditEmployeePage from "../pages/admin/EditEmployeePage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage";
 
 const router = createBrowserRouter([
   // --- Login Route (standalone, NO sidebar/layout) ---
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/reset-password/:token",
+    element: <ResetPasswordPage />,
   },
 
   // --- All authenticated routes wrapped in MainLayout ---
