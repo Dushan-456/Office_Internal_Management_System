@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEmployeeStats } from '../../api/employeeApi';
+import { leaveApi } from '../../api/leaveApi';
 import { siteConfig } from '../../config/siteConfig';
 import {
   Box, Typography, Paper, Grid, CircularProgress, Button, Chip, Avatar
@@ -10,8 +11,11 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import BusinessIcon from '@mui/icons-material/Business';
 import BadgeIcon from '@mui/icons-material/Badge';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import NotificationImportantIcon from '@mui/icons-material/NotificationImportant';
 import { motion } from 'framer-motion';
 import useAuthStore from '../../store/useAuthStore';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const StatCard = ({ title, value, icon, color, delay }) => (
   <motion.div
@@ -52,27 +56,54 @@ const StatCard = ({ title, value, icon, color, delay }) => (
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate()
+  const [pendingActingCount, setPendingActingCount] = useState(0);
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const [personalLeaves, setPersonalLeaves] = useState([]);
+
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
+  const isDeptHead = user?.role === 'DEPT_HEAD';
 
   useEffect(() => {
-    if (!isAdmin) {
-      setLoading(false);
-      return;
-    }
-    const fetchStats = async () => {
+    const fetchDashboardData = async () => {
       try {
-        const res = await getEmployeeStats();
-        setStats(res.data.data);
+        if (isAdmin) {
+          const res = await getEmployeeStats();
+          setStats(res.data.data);
+        }
+
+        if (user) {
+          const actingRes = await leaveApi.getPendingActing();
+          if (actingRes.data && actingRes.data.success) {
+            setPendingActingCount(actingRes.data.count);
+          }
+          if (isAdmin || isDeptHead) {
+            const appRes = await leaveApi.getPendingApproval();
+            if (appRes.data && appRes.data.success) {
+              setPendingApprovalCount(appRes.data.count);
+            }
+          }
+
+          // Personal Leaves for analytics
+          const personalRes = await leaveApi.getMyLeaves();
+          if (personalRes.data && personalRes.data.success) {
+            // Filter for current year
+            const currentYear = new Date().getFullYear();
+            const yearData = personalRes.data.data.filter(l => 
+              new Date(l.dateRange.from).getFullYear() === currentYear
+            );
+            setPersonalLeaves(yearData);
+          }
+        }
       } catch (err) {
-        console.error('Failed to fetch stats:', err);
+        console.error('Failed to fetch dashboard data:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
-  }, []);
+    fetchDashboardData();
+  }, [user, isAdmin, isDeptHead]);
 
   if (loading) {
     return (
@@ -84,6 +115,81 @@ const DashboardPage = () => {
 
   return (
     <Box>
+      {/* Notifications Banners */}
+      {(pendingActingCount > 0 || pendingApprovalCount > 0) && (
+        <Box className="mb-6 space-y-3">
+          {pendingActingCount > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} 
+              animate={{ 
+                opacity: 1, 
+                x: 0,
+                scale: [1, 1.01, 1],
+              }}
+              transition={{
+                scale: {
+                  repeat: Infinity,
+                  duration: 2,
+                  ease: "easeInOut"
+                }
+              }}
+            >
+              <Paper className="p-4 flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
+                <Box className="flex items-center gap-3 text-amber-800">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                  >
+                    <NotificationImportantIcon color="warning" />
+                  </motion.div>
+                  <Typography variant="body1" className="font-bold">
+                    You have <span className="px-2 py-0.5 rounded-lg bg-amber-200 text-amber-900 animate-pulse">{pendingActingCount}</span> acting leave request(s) waiting for your Approval.
+                  </Typography>
+                </Box>
+                <Button variant="contained" color="warning" size="small" sx={{ borderRadius: '10px', fontWeight: 800 }} onClick={() => navigate('/leaves/acting')}>
+                  Review Now
+                </Button>
+              </Paper>
+            </motion.div>
+          )}
+          {pendingApprovalCount > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} 
+              animate={{ 
+                opacity: 1, 
+                x: 0,
+                scale: [1, 1.01, 1],
+              }}
+              transition={{ 
+                delay: 0.1,
+                scale: {
+                  repeat: Infinity,
+                  duration: 2.2,
+                  ease: "easeInOut"
+                }
+              }}
+            >
+              <Paper className="p-4 flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 shadow-sm">
+                <Box className="flex items-center gap-3 text-red-800">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.8 }}
+                  >
+                    <NotificationImportantIcon color="error" />
+                  </motion.div>
+                  <Typography variant="body1" className="font-bold">
+                    You have <span className="px-2 py-0.5 rounded-lg bg-red-200 text-red-900 animate-pulse">{pendingApprovalCount}</span> leave application(s) pending your final approval.
+                  </Typography>
+                </Box>
+                <Button variant="contained" color="error" size="small" sx={{ borderRadius: '10px', fontWeight: 800 }} onClick={() => navigate('/leaves/requests')}>
+                  Process Now
+                </Button>
+              </Paper>
+            </motion.div>
+          )}
+        </Box>
+      )}
+
       {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
@@ -148,62 +254,160 @@ const DashboardPage = () => {
         </Box>
       </motion.div>
 
-      {isAdmin && (
-        <>
-          {/* Stats Grid */}
-          <Grid container spacing={4} className="mb-10">
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard 
-                title="Active Workforce" 
-                value={stats?.totalEmployees || 0} 
-                icon={<PeopleIcon />} 
-                color="#6366f1" 
-                delay={0.1}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard 
-                title="Institutional Units" 
-                value={stats?.byDepartment?.length || 0} 
-                icon={<BusinessIcon />} 
-                color="#06b6d4" 
-                delay={0.2}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard 
-                title="Onboarded Today" 
-                value="0" 
-                icon={<PersonAddIcon />} 
-                color="#10b981" 
-                delay={0.3}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard 
-                title="Senior Staff" 
-                value={stats?.byEmployeeType?.find(t => t.employeeType === 'Permanent')?.count || 0} 
-                icon={<BadgeIcon />} 
-                color="#f59e0b" 
-                delay={0.4}
-              />
-            </Grid>
+      {/* Main Two-Column Dashboard Grid */}
+      <Grid container spacing={4}>
+        
+        {/* Left Column: Personal Leave Analytics */}
+        <Grid item xs={12} lg={6}>
+          <Box className="flex items-center justify-between mb-6">
+            <Typography variant="h5" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
+              Your Leave <span style={{ color: siteConfig.colors.primary }}>Analytics</span>
+              <Typography variant="caption" className="ml-2 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-500 font-black">
+                {new Date().getFullYear()}
+              </Typography>
+            </Typography>
+            <Button 
+              onClick={() => navigate('/leaves/my-details')}
+              size="small" 
+              sx={{ fontWeight: 800, textTransform: 'none' }}
+            >
+              View All History
+            </Button>
+          </Box>
+
+          <Grid container spacing={3} className="mb-6">
+            {[
+              { 
+                label: 'Acting Endors.', 
+                value: pendingActingCount,
+                color: siteConfig.colors.secondary,
+                icon: <VerifiedUserIcon />,
+                pulse: pendingActingCount > 0
+              },
+              { 
+                label: 'Approved Leaves', 
+                value: personalLeaves.filter(l => l.status === 'approved').length,
+                color: '#10b981',
+                icon: <CheckCircleIcon />
+              },
+              { 
+                label: 'Pending Approval', 
+                value: personalLeaves.filter(l => l.status === 'pending_acting' || l.status === 'pending_approval').length,
+                color: '#f59e0b',
+                icon: <NotificationImportantIcon />
+              },
+              { 
+                label: 'Rejected Feedbk', 
+                value: personalLeaves.filter(l => l.status === 'rejected').length,
+                color: '#ef4444',
+                icon: <ArrowForwardIosIcon />
+              }
+            ].map((item, idx) => (
+              <Grid item xs={12} sm={6} key={idx}>
+                <Paper className="glass-card p-5 rounded-3xl border border-slate-50 relative overflow-hidden group">
+                  {item.pulse && (
+                    <Box className="absolute inset-0 bg-current opacity-[0.03] animate-pulse" sx={{ color: item.color }} />
+                  )}
+                  <Box className="flex items-center gap-3 mb-3 relative z-10">
+                     <Box sx={{ color: item.color }}>{item.icon}</Box>
+                     <Typography variant="caption" className="font-black uppercase tracking-widest text-slate-400" sx={{ fontSize: '0.6rem' }}>{item.label}</Typography>
+                  </Box>
+                  <Typography variant="h4" className="font-black relative z-10" sx={{ color: 'var(--text-heading)' }}>
+                    {item.value}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
           </Grid>
 
-          {/* Analytics Row */}
-          <Grid container spacing={4}>
-            <Grid item xs={12} lg={8}>
-              <Paper className="glass-card p-8 rounded-[2.5rem]">
+          {/* Type Breakdown */}
+          <Paper className="glass-card p-6 rounded-[2rem] border border-slate-50">
+            <Typography variant="body2" className="font-black mb-4 uppercase tracking-tighter text-slate-500">Distribution by Leave Type</Typography>
+            <Box className="space-y-4">
+              {['Annual', 'Medical', 'Casual', 'Short'].map(type => {
+                const count = personalLeaves.filter(l => l.leaveType?.includes(type)).length;
+                const total = personalLeaves.length || 1;
+                const percentage = Math.round((count / total) * 100);
+                const colors = { Annual: '#6366f1', Medical: '#10b981', Casual: '#f59e0b', Short: '#ec4899' };
+
+                return (
+                  <Box key={type}>
+                    <Box className="flex justify-between mb-1">
+                      <Typography variant="body2" className="font-bold">{type} Leave</Typography>
+                      <Typography variant="body2" className="font-black">{count}</Typography>
+                    </Box>
+                    <Box className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: colors[type] || '#cbd5e1' }}
+                      />
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Right Column: Administrative Analytics (Admins Only) */}
+        <Grid item xs={12} lg={6}>
+          {isAdmin ? (
+            <Box className="space-y-8">
+               <Typography variant="h5" className="font-black tracking-tight mb-6" sx={{ color: 'var(--text-heading)' }}>
+                  Workforce <span style={{ color: siteConfig.colors.primary }}>Intelligence</span>
+                </Typography>
+              
+              {/* Reshaped Stats Grid (2x2) */}
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <StatCard 
+                    title="Active Staff" 
+                    value={stats?.totalEmployees || 0} 
+                    icon={<PeopleIcon />} 
+                    color="#6366f1" 
+                    delay={0.1}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <StatCard 
+                    title="Units" 
+                    value={stats?.byDepartment?.length || 0} 
+                    icon={<BusinessIcon />} 
+                    color="#06b6d4" 
+                    delay={0.2}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <StatCard 
+                    title="Onboarded" 
+                    value="0" 
+                    icon={<PersonAddIcon />} 
+                    color="#10b981" 
+                    delay={0.3}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <StatCard 
+                    title="Permanent" 
+                    value={stats?.byEmployeeType?.find(t => t.employeeType === 'Permanent')?.count || 0} 
+                    icon={<BadgeIcon />} 
+                    color="#f59e0b" 
+                    delay={0.4}
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Department Distribution (Condensed) */}
+              <Paper className="glass-card p-8 rounded-[2rem]">
                 <Box className="flex items-center justify-between mb-8">
                   <Typography variant="h6" className="font-extrabold" sx={{ color: 'var(--text-heading)' }}>
                     Departmental Density
                   </Typography>
-                  <Button size="small" endIcon={<ArrowForwardIosIcon sx={{ fontSize: 10 }} />} sx={{ textTransform: 'none', fontWeight: 700 }}>
-                    Details
-                  </Button>
                 </Box>
                 <Box className="space-y-6">
-                  {stats?.byDepartment?.map((dept, idx) => {
+                  {stats?.byDepartment?.slice(0, 5).map((dept, idx) => {
                     const colors = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
                     const color = colors[idx % colors.length];
                     const percentage = stats.totalEmployees > 0 
@@ -214,19 +418,19 @@ const DashboardPage = () => {
                         <Box className="flex items-center justify-between mb-2">
                           <Box className="flex items-center gap-3">
                             <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                            <Typography variant="body2" className="font-bold" sx={{ color: 'var(--text-muted)' }}>
+                            <Typography variant="body2" className="font-bold uppercase text-[0.6rem] text-slate-400">
                               {dept.department?.replace(/_/g, ' ')}
                             </Typography>
                           </Box>
-                          <Typography variant="body2" className="font-black" sx={{ color: 'var(--text-heading)' }}>
-                            {dept.count} <span className="text-slate-400 font-medium text-xs ml-1">({percentage}%)</span>
+                          <Typography variant="body2" className="font-black text-xs" sx={{ color: 'var(--text-heading)' }}>
+                            {dept.count}
                           </Typography>
                         </Box>
-                        <Box className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                        <Box className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: `${percentage}%` }}
-                            transition={{ duration: 1, delay: 0.5 + (idx * 0.1) }}
+                            transition={{ duration: 1 }}
                             className="h-full rounded-full"
                             style={{ backgroundColor: color }}
                           />
@@ -236,40 +440,15 @@ const DashboardPage = () => {
                   })}
                 </Box>
               </Paper>
-            </Grid>
-
-            <Grid item xs={12} lg={4}>
-              <Paper className="glass-card p-8 rounded-[2.5rem] h-full">
-                <Typography variant="h6" className="font-extrabold mb-6" sx={{ color: 'var(--text-heading)' }}>
-                  Employment Mix
-                </Typography>
-                <Box className="space-y-4">
-                  {stats?.byEmployeeType?.map((type, idx) => {
-                    const colors = ['#10b981', '#f59e0b', '#6366f1', '#ec4899', '#06b6d4'];
-                    const color = colors[idx % colors.length];
-                    return (
-                      <Box 
-                        key={type.employeeType}
-                        className="flex justify-between items-center p-4 rounded-2xl border border-slate-50 hover:border-slate-100 transition-colors"
-                      >
-                        <Typography variant="body2" className="font-bold" sx={{ color: 'var(--text-muted)' }}>
-                          {type.employeeType?.replace(/_/g, ' ')}
-                        </Typography>
-                        <Box 
-                          className="px-3 py-1 rounded-lg text-white font-black text-sm"
-                          style={{ backgroundColor: color }}
-                        >
-                          {type.count}
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Paper>
-            </Grid>
-          </Grid>
-        </>
-      )}
+            </Box>
+          ) : (
+            /* Standard User / Empty Placeholder on Right */
+            <Box className="h-full flex flex-col items-center justify-center p-10 text-center opacity-40">
+               {/* This space is reserved for future departmental analytics */}
+            </Box>
+          )}
+        </Grid>
+      </Grid>
     </Box>
   );
 };
