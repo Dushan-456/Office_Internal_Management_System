@@ -31,6 +31,7 @@ const Header = ({ onToggleMenu }) => {
 
   const roleLabels = {
     ADMIN: 'System Administrator',
+    TOP_ADMIN: 'Top Management',
     DEPT_HEAD: 'Department Head',
     EMPLOYEE: 'Staff Member',
   };
@@ -67,14 +68,14 @@ const Header = ({ onToggleMenu }) => {
           <MenuIcon />
         </IconButton>
         
-        <Box className="flex flex-col">
+        {/* <Box className="flex flex-col">
           <Typography variant="body2" className="font-medium text-[0.65rem] uppercase tracking-widest hidden xs:block" sx={{ color: 'var(--text-muted)' }}>
             {siteConfig.name}
           </Typography>
           <Typography variant="subtitle1" className="font-bold leading-tight truncate max-w-[120px] md:max-w-none" sx={{ color: 'var(--text-heading)' }}>
             {user?.firstName || 'User'}
           </Typography>
-        </Box>
+        </Box> */}
       </Box>
 
       {/* Right: User Details & Notifications */}
