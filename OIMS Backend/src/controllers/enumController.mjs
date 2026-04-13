@@ -6,6 +6,7 @@ import {
   GRADES,
   ROLES,
 } from "../models/User.mjs";
+import { LEAVE_TYPES, LEAVE_CATEGORIES } from "../models/LeaveRequest.mjs";
 
 // GET /api/v1/enums
 export const getEnums = (req, res) => {
@@ -18,6 +19,8 @@ export const getEnums = (req, res) => {
       jobTitles: JOB_TITLES,
       grades: GRADES,
       roles: ROLES,
+      leaveTypes: LEAVE_TYPES,
+      leaveCategories: LEAVE_CATEGORIES,
     },
   });
 };
