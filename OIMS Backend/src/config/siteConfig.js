@@ -2,6 +2,7 @@ export const siteConfig = {
   name: "OIMS Portal",
   motto: "Advanced Office Management System",
   logo: "/logo.png",
+  favicon: "https://cdn-icons-png.flaticon.com/512/2910/2910756.png",
   coverImage: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000",
   colors: {
     primary: "#6366f1",   // Deep Indigo
