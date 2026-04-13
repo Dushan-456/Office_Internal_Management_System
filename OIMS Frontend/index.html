@@ -3,9 +3,21 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link id="site-favicon" rel="icon" type="image/png" href="" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Office Internal Management System</title>
+  <title id="title">Title</title>
+  
+  <script type="module">
+    import { siteConfig } from './src/config/siteConfig.js';
+    const faviconLink = document.getElementById('site-favicon');
+    if (faviconLink) {
+      faviconLink.href = siteConfig.favicon;
+    }
+    const title = document.getElementById('title');
+    if (title) {
+      title.textContent = siteConfig.name;
+    }
+  </script>
 </head>
 
 <body>
