@@ -18,9 +18,10 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import MenuIcon from '@mui/icons-material/Menu';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Header = () => {
+const Header = ({ onToggleMenu }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useThemeStore();
@@ -28,9 +29,15 @@ const Header = () => {
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
   const SERVER_BASE = API_BASE.replace('/api/v1', '');
 
+  const roleLabels = {
+    ADMIN: 'System Administrator',
+    DEPT_HEAD: 'Department Head',
+    EMPLOYEE: 'Staff Member',
+  };
+
   const roleColors = {
     ADMIN: siteConfig.colors.primary,
-    DEPT_HEAD: siteConfig.colors.secondary,
+    DEPT_HEAD: siteConfig.colors.primary,
     EMPLOYEE: '#10b981',
   };
 
@@ -46,14 +53,28 @@ const Header = () => {
         bgcolor: isDarkMode ? 'rgba(15, 23, 42, 0.4)' : 'rgba(255, 255, 255, 0.4)',
       }}
     >
-      {/* Left: Branding/Context */}
-      <Box className="flex flex-col">
-        <Typography variant="body2" className="font-medium text-xs uppercase tracking-widest" sx={{ color: 'var(--text-muted)' }}>
-          {siteConfig.name}
-        </Typography>
-        <Typography variant="subtitle1" className="font-bold leading-tight" sx={{ color: 'var(--text-heading)' }}>
-          Welcome back, {user?.firstName || 'User'}
-        </Typography>
+      {/* Left: Branding & Menu Toggle */}
+      <Box className="flex items-center gap-3">
+        <IconButton
+          onClick={onToggleMenu}
+          sx={{ 
+            display: { sm: 'none' },
+            color: 'var(--text-heading)',
+            bgcolor: 'rgba(99, 102, 241, 0.1)',
+            borderRadius: '12px'
+          }}
+        >
+          <MenuIcon />
+        </IconButton>
+        
+        <Box className="flex flex-col">
+          <Typography variant="body2" className="font-medium text-[0.65rem] uppercase tracking-widest hidden xs:block" sx={{ color: 'var(--text-muted)' }}>
+            {siteConfig.name}
+          </Typography>
+          <Typography variant="subtitle1" className="font-bold leading-tight truncate max-w-[120px] md:max-w-none" sx={{ color: 'var(--text-heading)' }}>
+            {user?.firstName || 'User'}
+          </Typography>
+        </Box>
       </Box>
 
       {/* Right: User Details & Notifications */}
@@ -110,7 +131,7 @@ const Header = () => {
               {user?.firstName} {user?.lastName}
             </Typography>
             <Chip 
-              label={user?.role} 
+              label={roleLabels[user?.role] || user?.role} 
               size="small" 
               sx={{ 
                 height: 18, 
