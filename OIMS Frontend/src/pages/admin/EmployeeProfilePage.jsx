@@ -100,9 +100,9 @@ const EmployeeProfilePage = () => {
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   
   const roleStyles = {
-    ADMIN: { bg: '#fee2e2', color: '#ef4444', icon: <VerifiedUserIcon /> },
-    DEPT_HEAD: { bg: '#ede9fe', color: '#8b5cf6', icon: <WorkHistoryIcon /> },
-    EMPLOYEE: { bg: '#d1fae5', color: '#10b981', icon: <BadgeOutlinedIcon /> },
+    ADMIN: { bg: '#fee2e2', color: '#ef4444', label: 'System Administrator', icon: <VerifiedUserIcon /> },
+    DEPT_HEAD: { bg: '#ede9fe', color: '#8b5cf6', label: 'Department Head', icon: <WorkHistoryIcon /> },
+    EMPLOYEE: { bg: '#d1fae5', color: '#10b981', label: 'Staff Member', icon: <BadgeOutlinedIcon /> },
   };
 
   const currentRole = roleStyles[emp.role] || roleStyles.EMPLOYEE;
@@ -128,34 +128,7 @@ const EmployeeProfilePage = () => {
           </Box>
         </Box>
         <Box className="flex gap-2">
-          {isAdmin && (
-            <>
-              <Button 
-                onClick={() => navigate(`/employees/edit/${id}`)}
-                variant="outlined"
-                startIcon={<EditOutlinedIcon />}
-                size="small"
-                sx={{ 
-                  borderRadius: '12px', 
-                  textTransform: 'none', 
-                  fontWeight: 800, 
-                  px: 2,
-                  borderColor: 'var(--glass-border)',
-                  color: siteConfig.colors.primary,
-                  bgcolor: 'white/50'
-                }}
-              >
-                Edit
-              </Button>
-              <IconButton 
-                size="small"
-                onClick={() => setDelOpen(true)}
-                sx={{ color: '#ef4444', bgcolor: '#fef2f2', '&:hover': { bgcolor: '#fee2e2' }, borderRadius: '12px' }}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </>
-          )}
+          {/* Action buttons moved to sticky card */}
         </Box>
       </Box>
 
@@ -218,13 +191,24 @@ const EmployeeProfilePage = () => {
               </Typography>
 
               <Chip 
+                label={currentRole.label} 
+                sx={{ 
+                  bgcolor: `${siteConfig.colors.primary}10`, 
+                  color: siteConfig.colors.primary, 
+                  fontWeight: 800,
+                  borderRadius: '10px',
+                  mb: 1
+                }} 
+              />
+
+              <Chip 
                 label={emp.department?.replace(/_/g, ' ')} 
                 sx={{ 
                   bgcolor: `${siteConfig.colors.primary}10`, 
                   color: siteConfig.colors.primary, 
                   fontWeight: 800,
                   borderRadius: '10px',
-                  mb: 4
+                  
                 }} 
               />
 
@@ -259,6 +243,43 @@ const EmployeeProfilePage = () => {
                   </Box>
                 </Box>
               </Stack>
+
+              {isAdmin && (
+                <Box className="mt-8 px-8 w-full flex  gap-3">
+                  <Button 
+                    fullWidth
+                    onClick={() => navigate(`/employees/edit/${id}`)}
+                    variant="contained"
+                    startIcon={<EditOutlinedIcon />}
+                    className="btn-premium"
+                    sx={{ 
+                      borderRadius: '15px', 
+                      textTransform: 'none', 
+                      fontWeight: 800, 
+                      py: 1.5
+                    }}
+                  >
+                    Edit  
+                  </Button>
+                  <Button 
+                    fullWidth
+                    onClick={() => setDelOpen(true)}
+                    variant="outlined"
+                    startIcon={<DeleteOutlineIcon />}
+                    sx={{ 
+                      borderRadius: '15px', 
+                      textTransform: 'none', 
+                      fontWeight: 800, 
+                      py: 1.5,
+                      borderColor: '#fee2e2',
+                      color: '#ef4444',
+                      '&:hover': { bgcolor: '#fef2f2', borderColor: '#ef4444' }
+                    }}
+                  >
+                    Delete 
+                  </Button>
+                </Box>
+              )}
             </Paper>
           </motion.div>
         </Box>
@@ -368,18 +389,28 @@ const EmployeeProfilePage = () => {
       <Dialog 
         open={delOpen} 
         onClose={() => setDelOpen(false)} 
+        slotProps={{ 
+          backdrop: { 
+            sx: { 
+              backdropFilter: 'blur(8px)', 
+              backgroundColor: 'rgba(15, 23, 42, 0.4)' 
+            } 
+          } 
+        }}
         PaperProps={{ 
           sx: { 
             borderRadius: '32px', 
             p: 2,
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            bgcolor: 'var(--bg-main)', // Solid background
+            backgroundImage: 'none' // Remove any MUI overlays
           } 
         }}
       >
-        <DialogTitle className="font-black text-2xl" sx={{ color: '#ef4444' }}>Resource Termination</DialogTitle>
+        <DialogTitle className="font-black text-2xl" sx={{ color: '#ef4444' }}>Delete Employee</DialogTitle>
         <DialogContent>
-          <Typography className="text-slate-600 font-medium">
-            Permanently remove <strong>{emp.firstName} {emp.lastName}</strong> from the institutional directory? This action is irreversible.
+          <Typography className=" font-medium">
+            Permanently Delete <strong>{emp.firstName} {emp.lastName}</strong> from the institutional directory? This action is irreversible.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 4 }}>
@@ -390,7 +421,7 @@ const EmployeeProfilePage = () => {
             onClick={async () => { await deleteEmployee(id); navigate('/employees'); }}
             sx={{ borderRadius: '15px', fontWeight: 800, bgcolor: '#ef4444' }}
           >
-            Confirm Termination
+            Confirm Delete
           </Button>
         </DialogActions>
       </Dialog>
