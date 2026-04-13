@@ -12,7 +12,9 @@ const UPLOAD_BASE_DIR = path.join(__dirname, "../../public/uploads");
 
 // Ensure base directories exist
 const PROFILE_UPLOAD_DIR = path.join(UPLOAD_BASE_DIR, "profiles");
-[UPLOAD_BASE_DIR, PROFILE_UPLOAD_DIR].forEach(dir => {
+const LEAVE_UPLOAD_DIR = path.join(UPLOAD_BASE_DIR, "leaves");
+
+[UPLOAD_BASE_DIR, PROFILE_UPLOAD_DIR, LEAVE_UPLOAD_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -45,6 +47,22 @@ const fileFilter = (req, file, cb) => {
     cb(new Error("Invalid file type. Only JPG, PNG and WebP are allowed."), false);
   }
 };
+
+// === Leave Attachment Storage ===
+const storageLeave = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, LEAVE_UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+export const uploadLeaveAttachment = multer({
+  storage: storageLeave,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for leaves
+}).single("attachments");
 
 // === Export Profile Uploader ===
 export const uploadProfilePicture = multer({
