@@ -19,10 +19,12 @@ import LeaveApplicationForm from "../pages/employee/LeaveApplicationForm";
 import ActingRequestsPage from "../pages/employee/ActingRequestsPage";
 import MyLeaveDetailsPage from "../pages/employee/MyLeaveDetailsPage";
 import LeaveApprovalDashboard from "../pages/admin/LeaveApprovalDashboard";
+import LeaveCalendarPage from "../pages/employee/LeaveCalendarPage";
+import SystemSettingsPage from "../pages/admin/SystemSettingsPage";
 import ComingSoon from "../components/ComingSoon";
 
 const router = createBrowserRouter([
-  // --- Login Route (standalone, NO sidebar/layout) ---
+  // ... Login Routes (omitted for brevity)
   {
     path: "/login",
     element: <LoginPage />,
@@ -44,16 +46,22 @@ const router = createBrowserRouter([
         path: "/",
         element: <MainLayout />,
         children: [
-          // --- Global Dashboard (Available to all, analytics Admin-only) ---
-          { 
-            index: true, 
-            element: <DashboardPage /> 
+          // --- Global Dashboard ---
+          { index: true, element: <DashboardPage /> },
+
+          // --- Admin Only Area ---
+          {
+            path: "admin",
+            element: <ProtectedRouter ProtectedRole="ADMIN" />,
+            children: [
+              { path: "settings", element: <SystemSettingsPage /> }
+            ]
           },
 
-          // --- Unified Employee Management Hub ---
+          // --- Employee Management ---
           {
             path: "employees",
-            element: <ProtectedRouter ProtectedRole="DEPT_HEAD" />, // Base access for Dept Head + Admin
+            element: <ProtectedRouter ProtectedRole="DEPT_HEAD" />,
             children: [
               { index: true, element: <AllEmployeesPage /> },
               {
@@ -70,30 +78,21 @@ const router = createBrowserRouter([
               },
             ]
           },
-
-          // --- Public Authenticated Area (All Roles) ---
+          // ... rest of routes
           { path: "my-profile", element: <MyProfilePage /> },
-
-          // --- Leaves Management ---
           {
             path: "leaves",
             children: [
               { path: "apply", element: <LeaveApplicationForm /> },
               { path: "acting", element: <ActingRequestsPage /> },
-              { 
-                path: "requests", 
-                element: <ProtectedRouter ProtectedRole="DEPT_HEAD"><LeaveApprovalDashboard /></ProtectedRouter> 
-              },
-              { path: "my-details", element: <MyLeaveDetailsPage /> }
+              { path: "requests", element: <ProtectedRouter ProtectedRole="DEPT_HEAD"><LeaveApprovalDashboard /></ProtectedRouter> },
+              { path: "my-details", element: <MyLeaveDetailsPage /> },
+              { path: "calendar", element: <LeaveCalendarPage /> }
             ]
           },
-
-          // --- Coming Soon / Featured Modules ---
           { path: "attendance", element: <ComingSoon title="My Attendance Coming Soon" /> },
           { path: "ot-calculator", element: <ComingSoon title="OT Calculator Coming Soon" /> },
           { path: "vehicle-request", element: <ComingSoon title="Vehicle Request Coming Soon" /> },
-
-          // --- Catch-all 404 ---
           { path: "*", element: <Error404Page /> },
         ],
       },

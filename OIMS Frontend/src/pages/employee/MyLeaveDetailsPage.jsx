@@ -3,11 +3,15 @@ import {
   Box, Typography, Paper, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Button, CircularProgress, 
   Alert, Dialog, DialogTitle, DialogContent, DialogActions, 
-  Chip, Backdrop, IconButton, Divider, Grid, List, ListItem, ListItemText, ListItemIcon
+  Chip, Backdrop, IconButton, Divider, Grid, List, ListItem, ListItemText, ListItemIcon,
+  TextField, MenuItem, FormControl, InputLabel, Select, TablePagination
 } from '@mui/material';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { motion } from 'framer-motion';
 import CloseIcon from '@mui/icons-material/Close';
 import { useNavigate } from 'react-router-dom';
 import { leaveApi } from '../../api/leaveApi';
@@ -23,7 +27,16 @@ const MyLeaveDetailsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, fetchCurrentUser } = useAuthStore();
+
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 20;
+  const [filters, setFilters] = useState({
+    status: 'all',
+    leaveType: 'all',
+    fromDate: '',
+    toDate: ''
+  });
 
   const fetchRequests = async () => {
     try {
@@ -40,6 +53,7 @@ const MyLeaveDetailsPage = () => {
   };
 
   useEffect(() => {
+    fetchCurrentUser(); // Ensure latest balance is fetched
     fetchRequests();
   }, []);
 
@@ -81,6 +95,27 @@ const MyLeaveDetailsPage = () => {
     navigate('/leaves/apply', { state: { requestData: request } });
   };
 
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return 'Pending...';
+    return new Date(dateStr).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatShortDateTime = (dateStr) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const formatDate = (dateStr) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -88,6 +123,45 @@ const MyLeaveDetailsPage = () => {
       day: 'numeric'
     });
   };
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+    setPage(0); // Reset to first page on filter change
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      status: 'all',
+      leaveType: 'all',
+      fromDate: '',
+      toDate: ''
+    });
+    setPage(0);
+  };
+
+  // Combine Filtering & Pagination Logic
+  const filteredRequests = requests.filter(req => {
+    const matchesStatus = filters.status === 'all' || req.status === filters.status;
+    const matchesType = filters.leaveType === 'all' || req.leaveType === filters.leaveType;
+    
+    const reqFromDate = new Date(req.dateRange.from);
+    const reqToDate = new Date(req.dateRange.to);
+    
+    const filterFrom = filters.fromDate ? new Date(filters.fromDate) : null;
+    const filterTo = filters.toDate ? new Date(filters.toDate) : null;
+
+    if (filterFrom) filterFrom.setHours(0,0,0,0);
+    if (filterTo) filterTo.setHours(23,59,59,999);
+
+    const matchesFrom = !filterFrom || reqFromDate >= filterFrom;
+    const matchesTo = !filterTo || reqToDate <= filterTo;
+
+    return matchesStatus && matchesType && matchesFrom && matchesTo;
+  });
+
+  const paginatedRequests = filteredRequests.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+
+  const leaveTypes = [...new Set(requests.map(r => r.leaveType))].sort();
 
   if (loading) return (
     <Box className="flex justify-center items-center h-96">
@@ -115,6 +189,88 @@ const MyLeaveDetailsPage = () => {
 
       {error && <Alert severity="error" className="mb-6 rounded-xl">{error}</Alert>}
 
+      {requests.length > 0 && (
+        <Paper className="glass-card mb-8 p-6 rounded-[2rem] border border-slate-50 shadow-sm">
+          <Box className="flex flex-col md:flex-row items-center  gap-8">
+            <Box className="flex items-center gap-2 text-indigo-500 mr-2">
+              <FilterAltOutlinedIcon fontSize="small" />
+              <Typography variant="caption" className="font-black uppercase tracking-widest">Leave Filters</Typography>
+            </Box>
+            
+            <Grid container spacing={6} alignItems="center" >
+              <Grid item xs={12} sm={6} md={2.5}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="From Date"
+                  type="date"
+                  value={filters.fromDate}
+                  onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.5}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="To Date"
+                  type="date"
+                  value={filters.toDate}
+                  onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.5}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filters.status}
+                    label="Status"
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    sx={{ borderRadius: '12px' }}
+                  >
+                    <MenuItem value="all">All Statuses</MenuItem>
+                    <MenuItem value="pending_acting">Pending Acting</MenuItem>
+                    <MenuItem value="pending_approval">Pending Approval</MenuItem>
+                    <MenuItem value="approved">Approved</MenuItem>
+                    <MenuItem value="rejected">Rejected</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.5}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Leave Type</InputLabel>
+                  <Select
+                    value={filters.leaveType}
+                    label="Leave Type"
+                    onChange={(e) => handleFilterChange('leaveType', e.target.value)}
+                    sx={{ borderRadius: '12px' }}
+                  >
+                    <MenuItem value="all">All Types</MenuItem>
+                    {leaveTypes.map(type => (
+                      <MenuItem key={type} value={type}>{type}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={2}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={resetFilters}
+                  startIcon={<RestartAltIcon />}
+                  sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, borderColor: '#e2e8f0', color: '#64748b' }}
+                >
+                  Reset
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        </Paper>
+      )}
+
       {requests.length === 0 ? (
         <Paper className="glass-card p-12 text-center rounded-[2rem]">
           <Typography variant="h6" sx={{ color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -134,7 +290,7 @@ const MyLeaveDetailsPage = () => {
           
           {/* Main Content Area (Table) - Now on the left to match profile density */}
           <Box className="flex-1 w-full order-2 lg:order-1">
-            <TableContainer component={Paper} className="glass-card rounded-[2rem] overflow-hidden">
+            <TableContainer component={Paper} className="glass-card rounded-[2rem] overflow-hidden shadow-sm">
               <Table>
                 <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
                   <TableRow>
@@ -146,7 +302,13 @@ const MyLeaveDetailsPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {requests.map((req) => {
+                  {paginatedRequests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
+                        <Typography variant="body2" className="text-slate-400 font-bold italic">No records match your active filters.</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedRequests.map((req) => {
                     const isPending = req.actingOfficerStatus === 'pending' && req.deptHeadStatus === 'pending';
 
                     return (
@@ -180,23 +342,37 @@ const MyLeaveDetailsPage = () => {
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
-                          <Chip 
-                            label={req.actingOfficerStatus?.toUpperCase()} 
-                            size="small" 
-                            color={req.actingOfficerStatus === 'approved' ? 'success' : req.actingOfficerStatus === 'rejected' ? 'error' : 'warning'}
-                            sx={{ fontWeight: 800, fontSize: '0.65rem' }} 
-                          />
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                            <Chip 
+                              label={req.actingOfficerStatus?.toUpperCase()} 
+                              size="small" 
+                              color={req.actingOfficerStatus === 'approved' ? 'success' : req.actingOfficerStatus === 'rejected' ? 'error' : 'warning'}
+                              sx={{ fontWeight: 800, fontSize: '0.65rem' }} 
+                            />
+                            {req.actingOfficerDecisionDate && (
+                              <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary' }}>
+                                {formatShortDateTime(req.actingOfficerDecisionDate)}
+                              </Typography>
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell align="center">
                            {req.actingOfficerStatus === 'rejected' ? (
                                <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.disabled' }}>----</Typography>
                             ) : (
-                               <Chip 
-                                 label={req.deptHeadStatus?.toUpperCase() || 'PENDING'} 
-                                 size="small" 
-                                 color={req.deptHeadStatus === 'approved' ? 'success' : req.deptHeadStatus === 'rejected' ? 'error' : 'warning'}
-                                 sx={{ fontWeight: 800, fontSize: '0.65rem' }} 
-                               />
+                               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                                 <Chip 
+                                   label={req.deptHeadStatus?.toUpperCase() || 'PENDING'} 
+                                   size="small" 
+                                   color={req.deptHeadStatus === 'approved' ? 'success' : req.deptHeadStatus === 'rejected' ? 'error' : 'warning'}
+                                   sx={{ fontWeight: 800, fontSize: '0.65rem' }} 
+                                 />
+                                 {req.deptHeadDecisionDate && (
+                                   <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary' }}>
+                                     {formatShortDateTime(req.deptHeadDecisionDate)}
+                                   </Typography>
+                                 )}
+                               </Box>
                             )}
                         </TableCell>
                         <TableCell align="right">
@@ -229,6 +405,18 @@ const MyLeaveDetailsPage = () => {
                   })}
                 </TableBody>
               </Table>
+              <TablePagination
+                component="div"
+                count={filteredRequests.length}
+                page={page}
+                onPageChange={(e, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                rowsPerPageOptions={[20]}
+                sx={{
+                  borderTop: '1px solid rgba(0,0,0,0.05)',
+                  '.MuiTablePagination-selectLabel, .MuiTablePagination-input': { display: 'none !important' }
+                }}
+              />
             </TableContainer>
           </Box>
 
@@ -243,7 +431,7 @@ const MyLeaveDetailsPage = () => {
                 </Box>
               </Box>
 
-              <Box className="mb-8 p-8 rounded-[2.5rem]  border border-indigo-100 text-center relative overflow-hidden group">
+              <Box className="mb-8 p-2 rounded-[2.5rem]  border border-indigo-100 text-center relative overflow-hidden group">
                 <Box className="absolute top-0 right-0 w-24 h-24  rounded-full -mr-10 -mt-10 blur-2xl" />
                 <Typography variant="h2" className="font-black uppercase text-indigo-400 tracking-tighter relative z-10">                 
                    {requests
@@ -255,8 +443,7 @@ const MyLeaveDetailsPage = () => {
                 </Typography>
               </Box>
 
-              <Typography variant="subtitle2" className="font-black mb-4 px-2 uppercase text-[0.7rem] text-slate-400">By Leave Type</Typography>
-              <List disablePadding className="space-y-3">
+              <Box className="space-y-6">
                 {(() => {
                   const currentYear = new Date().getFullYear();
                   const approvedRequests = requests.filter(l => 
@@ -264,33 +451,41 @@ const MyLeaveDetailsPage = () => {
                     new Date(l.dateRange.from).getFullYear() === currentYear
                   );
                   const uniqueTypes = [...new Set(approvedRequests.map(l => l.leaveType))].sort();
+                  const grandTotal = approvedRequests.reduce((sum, l) => sum + (l.totalDays || 0), 0) || 1;
+
+                  if (uniqueTypes.length === 0) {
+                    return <Typography variant="caption" className="text-slate-400 italic px-2">No approved records yet.</Typography>;
+                  }
 
                   return uniqueTypes.map(type => {
-                    const count = approvedRequests.filter(l => l.leaveType === type).length;
+                    const days = approvedRequests.filter(l => l.leaveType === type).reduce((sum, l) => sum + (l.totalDays || 0), 0);
+                    const percentage = Math.round((days / grandTotal) * 100);
                     const typeColors = { Annual: '#6366f1', Medical: '#10b981', Casual: '#f59e0b', Short: '#ec4899' };
                     const color = typeColors[type] || siteConfig.colors.primary;
 
                     return (
-                      <ListItem 
-                        key={type} 
-                        className="rounded-2xl border border-transparent transition-all hover:border-slate-100 "
-                        sx={{ py: 1.2, px: 2 }}
-                      >
-                        <ListItemIcon sx={{ minWidth: 30 }}>
-                          <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={<Typography className="font-bold text-[0.85rem] text-slate-600">{type} Leave</Typography>} 
-                        />
-                        <Typography>{count}</Typography>
-                      </ListItem>
+                      <Box key={type} className="p-2">
+                        <Box className="flex justify-between items-center mb-1.5">
+                          <Box className="flex items-center gap-2">
+                            <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                            <Typography variant="caption" className="font-bold ">{type} Leave</Typography>
+                          </Box>
+                          <Typography variant="caption" className="font-black" sx={{ color: 'var(--text-heading)' }}>{days} Days</Typography>
+                        </Box>
+                        <Box className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            className="h-full rounded-full"
+                            transition={{ duration: 1, ease: "easeOut" }}
+                            style={{ backgroundColor: color }}
+                          />
+                        </Box>
+                      </Box>
                     );
                   });
                 })()}
-                {requests.filter(l => l.status === 'approved' && new Date(l.dateRange.from).getFullYear() === new Date().getFullYear()).length === 0 && (
-                  <Typography variant="caption" className="text-slate-400 italic px-2">No approved records yet.</Typography>
-                )}
-              </List>
+              </Box>
               
               <Divider className="my-6" sx={{ borderStyle: 'dashed', opacity: 0.5 }} />
               
@@ -319,7 +514,7 @@ const MyLeaveDetailsPage = () => {
         open={modalOpen} 
         onClose={handleCloseModal}
         fullWidth
-        maxWidth="sm"
+        maxWidth="md"
         slotProps={{
           backdrop: {
             sx: {
@@ -427,7 +622,13 @@ const MyLeaveDetailsPage = () => {
                     color={selectedRequest.actingOfficerStatus === 'approved' ? 'success' : selectedRequest.actingOfficerStatus === 'rejected' ? 'error' : 'warning'}
                     sx={{ fontWeight: 800, fontSize: '0.65rem', mt: 1 }} 
                   />
+                  {selectedRequest.actingOfficerDecisionDate && (
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontWeight: 700, fontSize: '0.65rem' }}>
+                      {formatDateTime(selectedRequest.actingOfficerDecisionDate)}
+                    </Typography>
+                  )}
                 </Box>
+                
                 <Box>
                   <Typography variant="caption" className="font-bold text-slate-400 uppercase">Department Head</Typography>
                   <Typography variant="body2" className="font-semibold">
@@ -436,13 +637,79 @@ const MyLeaveDetailsPage = () => {
                   {selectedRequest.actingOfficerStatus === 'rejected' ? (
                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.disabled', mt: 1, display: 'block' }}>N/A</Typography>
                   ) : (
-                    <Chip 
-                      label={selectedRequest.deptHeadStatus?.toUpperCase() || 'PENDING'} 
-                      size="small" 
-                      color={selectedRequest.deptHeadStatus === 'approved' ? 'success' : selectedRequest.deptHeadStatus === 'rejected' ? 'error' : 'warning'}
-                      sx={{ fontWeight: 800, fontSize: '0.65rem', mt: 1 }} 
-                    />
+                    <>
+                      <Chip 
+                        label={selectedRequest.deptHeadStatus?.toUpperCase() || 'PENDING'} 
+                        size="small" 
+                        color={selectedRequest.deptHeadStatus === 'approved' ? 'success' : selectedRequest.deptHeadStatus === 'rejected' ? 'error' : 'warning'}
+                        sx={{ fontWeight: 800, fontSize: '0.65rem', mt: 1 }} 
+                      />
+                      {selectedRequest.deptHeadDecisionDate && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontWeight: 700, fontSize: '0.65rem' }}>
+                          {formatDateTime(selectedRequest.deptHeadDecisionDate)}
+                        </Typography>
+                      )}
+                    </>
                   )}
+                </Box>
+              </Box>
+              
+              {/* Workflow Timeline Section */}
+              <Box className="mt-8 pt-6 border-t border-slate-100">
+                <Typography variant="caption" className="font-black text-slate-400 uppercase tracking-widest block mb-6">
+                  Workflow Timeline
+                </Typography>
+                
+                <Box className="space-y-6 relative before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-500">
+                  {/* Step 1: applied */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className="w-6 h-6 rounded-full bg-indigo-500 border-4 border-white shadow-sm flex items-center justify-center shrink-0">
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold ">Request Submitted</Typography>
+                      <Typography variant="caption" className=" flex items-center gap-1.5">
+                        {formatDateTime(selectedRequest.createdAt)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Step 2: acting */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className={`w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center shrink-0 ${
+                      selectedRequest.actingOfficerStatus === 'approved' ? 'bg-emerald-500' : 
+                      selectedRequest.actingOfficerStatus === 'rejected' ? 'bg-red-500' : 'bg-amber-400'
+                    }`}>
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold ">
+                        Acting Approval {selectedRequest.actingOfficerStatus !== 'pending' && `(${selectedRequest.actingOfficerStatus})`}
+                      </Typography>
+                      <Typography variant="caption" >
+                        {selectedRequest.actingOfficerDecisionDate ? formatDateTime(selectedRequest.actingOfficerDecisionDate) : 'Awaiting response from acting officer'}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Step 3: final */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className={`w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center shrink-0 ${
+                      selectedRequest.deptHeadStatus === 'approved' ? 'bg-emerald-500' : 
+                      selectedRequest.deptHeadStatus === 'rejected' ? 'bg-red-500' : 'bg-slate-200'
+                    }`}>
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold ">
+                        Final Approval {selectedRequest.deptHeadStatus !== 'pending' && `(${selectedRequest.deptHeadStatus})`}
+                      </Typography>
+                      <Typography variant="caption" >
+                        {selectedRequest.deptHeadDecisionDate ? formatDateTime(selectedRequest.deptHeadDecisionDate) : 
+                         selectedRequest.actingOfficerStatus === 'rejected' ? 'Process terminated' : 'Pending final administrative review'}
+                      </Typography>
+                    </Box>
+                  </Box>
                 </Box>
               </Box>
 

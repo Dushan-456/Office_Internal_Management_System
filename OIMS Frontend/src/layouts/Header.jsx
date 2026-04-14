@@ -20,6 +20,7 @@ import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MenuIcon from '@mui/icons-material/Menu';
 import { motion, AnimatePresence } from 'framer-motion';
+import NotificationBell from '../components/NotificationBell';
 
 const Header = ({ onToggleMenu }) => {
   const navigate = useNavigate();
@@ -112,13 +113,8 @@ const Header = ({ onToggleMenu }) => {
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Notifications">
-            <IconButton size="small" sx={{ color: '#64748b' }}>
-              <Badge variant="dot" color="error">
-                <NotificationsNoneIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
+          <NotificationBell />
+
         </Box>
 
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 2, opacity: 0.5 }} />

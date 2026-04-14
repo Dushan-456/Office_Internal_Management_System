@@ -131,9 +131,12 @@ const LeaveApplicationForm = () => {
     }
   };
 
-  const getSevenDaysAgo = () => {
+  const getMinAllowedDate = () => {
+    const gracePeriod = enums?.gracePeriodDays;
+    if (gracePeriod === 0) return undefined; // No limit
+    
     const d = new Date();
-    d.setDate(d.getDate() - 7);
+    d.setDate(d.getDate() - (gracePeriod || 7));
     return d.toISOString().split('T')[0];
   };
 
@@ -273,7 +276,7 @@ const LeaveApplicationForm = () => {
                     fullWidth 
                     error={!!errors.fromDate} 
                     helperText={errors.fromDate?.message} 
-                    inputProps={{ min: getSevenDaysAgo() }}
+                    inputProps={{ min: getMinAllowedDate() }}
                     onClick={(e) => {
                       try { e.target.showPicker(); } catch (err) {}
                     }}
@@ -321,7 +324,7 @@ const LeaveApplicationForm = () => {
                     fullWidth 
                     error={!!errors.toDate} 
                     helperText={errors.toDate?.message} 
-                    inputProps={{ min: watchFromDate || getSevenDaysAgo() }}
+                    inputProps={{ min: watchFromDate || getMinAllowedDate() }}
                     onClick={(e) => {
                       try { e.target.showPicker(); } catch (err) {}
                     }}

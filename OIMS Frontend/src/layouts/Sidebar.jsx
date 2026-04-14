@@ -25,6 +25,8 @@ import EventNoteIcon from '@mui/icons-material/EventNote';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import CommuteIcon from '@mui/icons-material/Commute';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { motion } from 'framer-motion';
 
 const drawerWidth = 280;
@@ -119,6 +121,7 @@ const Sidebar = ({ mobileOpen, onClose }) => {
         { text: 'Acting Requests', icon: <AssignmentTurnedInIcon />, path: '/leaves/acting', show: true, badge: pendingActingCount },
         { text: 'Leave Requests', icon: <ApprovalIcon />, path: '/leaves/requests', show: isAdmin || isDeptHead, badge: pendingApprovalCount },
         { text: 'My Leave Details', icon: <EventNoteIcon />, path: '/leaves/my-details', show: true, badge: myPendingCount },
+        { text: 'Branch Leave Calendar', icon: <CalendarMonthIcon />, path: '/leaves/calendar', show: true },
       ]
     },
     {
@@ -133,6 +136,7 @@ const Sidebar = ({ mobileOpen, onClose }) => {
       items: [
         { text: 'All Employees', icon: <PeopleIcon />, path: '/employees', show: isAdmin || isDeptHead },
         { text: 'Add Employee', icon: <PersonAddIcon />, path: '/employees/add', show: isAdmin },
+        { text: 'System Settings', icon: <SettingsIcon />, path: '/admin/settings', show: isAdmin },
       ]
     }
   ];

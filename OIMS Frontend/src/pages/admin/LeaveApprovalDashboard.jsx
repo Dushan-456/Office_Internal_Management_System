@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, Typography, Paper, Table, TableBody, TableCell, 
+import {  Box, Typography, Paper, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Button, CircularProgress, 
   Alert, Dialog, DialogTitle, DialogContent, DialogActions, 
-  Chip, Avatar, IconButton, Divider, Backdrop, TextField
+  Chip, Avatar, IconButton, Divider, Backdrop, TextField, Grid, MenuItem, FormControl, InputLabel, Select, TablePagination
 } from '@mui/material';
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import SearchIcon from '@mui/icons-material/Search';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -21,6 +23,16 @@ const LeaveApprovalDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 20;
+  const [filters, setFilters] = useState({
+    search: '',
+    status: 'all',
+    leaveType: 'all',
+    fromDate: '',
+    toDate: ''
+  });
   
   const ASSET_BASE = import.meta.env.VITE_ASSET_URL || 'http://localhost:5000';
 
@@ -87,6 +99,27 @@ const LeaveApprovalDashboard = () => {
     }
   };
 
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return 'Pending...';
+    return new Date(dateStr).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatShortDateTime = (dateStr) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -95,6 +128,52 @@ const LeaveApprovalDashboard = () => {
       day: 'numeric'
     });
   };
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+    setPage(0);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+      leaveType: 'all',
+      fromDate: '',
+      toDate: ''
+    });
+    setPage(0);
+  };
+
+  // Combine Filtering & Pagination Logic
+  const filteredRequests = requests.filter(req => {
+    const applicantName = `${req.applicantId?.firstName} ${req.applicantId?.lastName}`.toLowerCase();
+    const employeeNo = req.applicantId?.employeeNo?.toLowerCase() || '';
+    const matchesSearch = !filters.search || 
+      applicantName.includes(filters.search.toLowerCase()) || 
+      employeeNo.includes(filters.search.toLowerCase());
+    
+    const matchesStatus = filters.status === 'all' || req.status === filters.status;
+    const matchesType = filters.leaveType === 'all' || req.leaveType === filters.leaveType;
+    
+    const reqFromDate = new Date(req.dateRange.from);
+    const reqToDate = new Date(req.dateRange.to);
+    
+    const filterFrom = filters.fromDate ? new Date(filters.fromDate) : null;
+    const filterTo = filters.toDate ? new Date(filters.toDate) : null;
+
+    if (filterFrom) filterFrom.setHours(0,0,0,0);
+    if (filterTo) filterTo.setHours(23,59,59,999);
+
+    const matchesFrom = !filterFrom || reqFromDate >= filterFrom;
+    const matchesTo = !filterTo || reqToDate <= filterTo;
+
+    return matchesSearch && matchesStatus && matchesType && matchesFrom && matchesTo;
+  });
+
+  const paginatedRequests = filteredRequests.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
+
+  const leaveTypes = [...new Set(requests.map(r => r.leaveType))].sort();
 
   if (loading) return (
     <Box className="flex justify-center items-center h-96">
@@ -122,6 +201,94 @@ const LeaveApprovalDashboard = () => {
 
       {error && <Alert severity="error" className="mb-6 rounded-xl">{error}</Alert>}
 
+      {requests.length > 0 && (
+        <Paper className="glass-card mb-8 p-6 rounded-[2rem] border border-slate-50 shadow-sm">
+          <Grid container spacing={5} alignItems="center">
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Search Applicant Name or ID..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ color: 'text.disabled', mr: 1, fontSize: 20 }} />,
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                label="From Date"
+                type="date"
+                value={filters.fromDate}
+                onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <TextField
+                fullWidth
+                size="small"
+                label="To Date"
+                type="date"
+                value={filters.toDate}
+                onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={1.7}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Final Status</InputLabel>
+                <Select
+                  value={filters.status}
+                  label="Final Status"
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  sx={{ borderRadius: '12px' }}
+                >
+                  <MenuItem value="all">All Requests</MenuItem>
+                  <MenuItem value="pending_acting">Pending Acting</MenuItem>
+                  <MenuItem value="pending_approval">Pending Head</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={1.7}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Leave Type</InputLabel>
+                <Select
+                  value={filters.leaveType}
+                  label="Leave Type"
+                  onChange={(e) => handleFilterChange('leaveType', e.target.value)}
+                  sx={{ borderRadius: '12px' }}
+                >
+                  <MenuItem value="all">All Types</MenuItem>
+                  {leaveTypes.map(type => (
+                    <MenuItem key={type} value={type}>{type}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={1.6}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={resetFilters}
+                startIcon={<RestartAltIcon />}
+                sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, borderColor: '#e2e8f0', color: '#64748b' }}
+              >
+                Reset
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
+      )}
+
       {requests.length === 0 ? (
         <Paper className="glass-card p-12 text-center rounded-[2rem]">
           <Typography variant="h6" sx={{ color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -129,18 +296,24 @@ const LeaveApprovalDashboard = () => {
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} className="glass-card rounded-[2rem] overflow-hidden">
+        <TableContainer component={Paper} className="glass-card rounded-[2rem] overflow-hidden shadow-sm">
           <Table>
             <TableHead sx={{ bgcolor: 'rgba(0,0,0,0.02)' }}>
               <TableRow>
                 <TableCell className="font-bold">Applicant</TableCell>
                 <TableCell className="font-bold" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Summary</TableCell>
-                <TableCell className="font-bold">Acting Officer Status</TableCell>
-                <TableCell className="font-bold">Approval Officer Status</TableCell>
+                <TableCell className="font-bold">Acting Status</TableCell>
+                <TableCell className="font-bold text-center" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>Final Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {requests.map((req) => (
+              {paginatedRequests.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ py: 10 }}>
+                    <Typography variant="body2" className="text-slate-400 font-bold italic">No records match your filters.</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : paginatedRequests.map((req) => (
                 <TableRow 
                   key={req.id} 
                   hover 
@@ -185,22 +358,46 @@ const LeaveApprovalDashboard = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Box className="flex items-center gap-2">
-                      <Box sx={{ textAlign: 'left' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      <Box sx={{ display: 'flex', items: 'center', gap: 1 }}>
                         {getActingStatusChip(req.actingOfficerStatus)}
-                        <Typography variant="caption" display="block" sx={{ fontWeight: 500, fontSize: '0.7rem', mt: 0.5 }}>
-                          by {req.actingOfficerId?.firstName} {req.actingOfficerId?.lastName}
-                        </Typography>
                       </Box>
+                      {req.actingOfficerDecisionDate && (
+                        <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary' }}>
+                          {formatShortDateTime(req.actingOfficerDecisionDate)}
+                        </Typography>
+                      )}
+                      <Typography variant="caption" display="block" sx={{ fontWeight: 500, fontSize: '0.65rem' }}>
+                        by {req.actingOfficerId?.firstName} {req.actingOfficerId?.lastName}
+                      </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    {getFinalStatusChip(req.status)}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                      {getFinalStatusChip(req.status)}
+                      {req.deptHeadDecisionDate && (
+                        <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary' }}>
+                          {formatShortDateTime(req.deptHeadDecisionDate)}
+                        </Typography>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            component="div"
+            count={filteredRequests.length}
+            page={page}
+            onPageChange={(e, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[20]}
+            sx={{
+              borderTop: '1px solid rgba(0,0,0,0.05)',
+              '.MuiTablePagination-selectLabel, .MuiTablePagination-input': { display: 'none !important' }
+            }}
+          />
         </TableContainer>
       )}
 
@@ -209,7 +406,7 @@ const LeaveApprovalDashboard = () => {
         open={modalOpen} 
         onClose={handleCloseModal}
         fullWidth
-        maxWidth="sm"
+        maxWidth="md"
         slotProps={{
           backdrop: {
             sx: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }
@@ -260,24 +457,34 @@ const LeaveApprovalDashboard = () => {
                   </Typography>
                   <Typography variant="caption" className="font-bold" >{selectedRequest.totalDays} Work Days</Typography>
                 </Box>
-                <Box>
-                  <Typography variant="caption" className="font-bold text-slate-400 uppercase">Acting Officer</Typography>
-                  <Typography variant="body2" className="font-semibold">
-                    {selectedRequest.actingOfficerId?.firstName} {selectedRequest.actingOfficerId?.lastName}
-                  </Typography>
-                  {getActingStatusChip(selectedRequest.actingOfficerStatus)}
+                  <Box>
+                    <Typography variant="caption" className="font-bold text-slate-400 uppercase">Acting Officer</Typography>
+                    <Typography variant="body2" className="font-semibold">
+                      {selectedRequest.actingOfficerId?.firstName} {selectedRequest.actingOfficerId?.lastName}
+                    </Typography>
+                    {getActingStatusChip(selectedRequest.actingOfficerStatus)}
+                    {selectedRequest.actingOfficerDecisionDate && (
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontWeight: 700, fontSize: '0.65rem' }}>
+                        {formatDateTime(selectedRequest.actingOfficerDecisionDate)}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
-              </Box>
-
-              {selectedRequest.status !== 'pending_approval' && (
-                <Box className="mt-4 p-4 rounded-2xl flex items-center justify-between" sx={{ bgcolor: selectedRequest.status === 'approved' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', border: '1px solid', borderColor: selectedRequest.status === 'approved' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)' }}>
-                   <Box>
-                      <Typography variant="caption" className="font-bold uppercase" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : 'error.main' }}>Final Decision</Typography>
-                      <Typography variant="h6" className="font-black" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : 'error.main', textTransform: 'uppercase' }}>{selectedRequest.status}</Typography>
-                   </Box>
-                   <Chip label="FINALIZED" size="small" variant="filled" sx={{ fontWeight: 900, fontSize: '0.6rem', bgcolor: selectedRequest.status === 'approved' ? 'success.main' : 'error.main', color: 'white' }} />
-                </Box>
-              )}
+  
+                {selectedRequest.status !== 'pending_approval' && (
+                  <Box className="mt-4 p-4 rounded-2xl flex items-center justify-between" sx={{ bgcolor: selectedRequest.status === 'approved' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)', border: '1px solid', borderColor: selectedRequest.status === 'approved' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)' }}>
+                     <Box>
+                        <Typography variant="caption" className="font-bold uppercase" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : 'error.main' }}>Final Decision</Typography>
+                        <Typography variant="h6" className="font-black" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : 'error.main', textTransform: 'uppercase' }}>{selectedRequest.status}</Typography>
+                        {selectedRequest.deptHeadDecisionDate && (
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: selectedRequest.status === 'approved' ? 'success.main' : 'error.main', opacity: 0.8 }}>
+                            Decided: {formatDateTime(selectedRequest.deptHeadDecisionDate)}
+                          </Typography>
+                        )}
+                     </Box>
+                     <Chip label="FINALIZED" size="small" variant="filled" sx={{ fontWeight: 900, fontSize: '0.6rem', bgcolor: selectedRequest.status === 'approved' ? 'success.main' : 'error.main', color: 'white' }} />
+                  </Box>
+                )}
 
               {selectedRequest.rejectionReason && (
                 <Box className="mt-4">
@@ -337,6 +544,65 @@ const LeaveApprovalDashboard = () => {
                   </Box>
                 </Box>
               )}
+
+              {/* Workflow Timeline Section */}
+              <Box className="mt-8 pt-6 border-t border-slate-100">
+                <Typography variant="caption" className="font-black text-slate-400 uppercase tracking-widest block mb-6">
+                  Workflow Timeline
+                </Typography>
+                
+                <Box className="space-y-6 relative before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-500">
+                  {/* Step 1: applied */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className="w-6 h-6 rounded-full bg-indigo-500 border-4 border-white shadow-sm flex items-center justify-center shrink-0">
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold ">Request Submitted</Typography>
+                      <Typography variant="caption" className=" flex items-center gap-1.5">
+                        {formatDateTime(selectedRequest.createdAt)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Step 2: acting */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className={`w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center shrink-0 ${
+                      selectedRequest.actingOfficerStatus === 'approved' ? 'bg-emerald-500' : 
+                      selectedRequest.actingOfficerStatus === 'rejected' ? 'bg-red-500' : 'bg-amber-400'
+                    }`}>
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold ">
+                        Acting Approval {selectedRequest.actingOfficerStatus !== 'pending' && `(${selectedRequest.actingOfficerStatus})`}
+                      </Typography>
+                      <Typography variant="caption" >
+                        {selectedRequest.actingOfficerDecisionDate ? formatDateTime(selectedRequest.actingOfficerDecisionDate) : 'Awaiting approval'}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Step 3: final */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className={`w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center shrink-0 ${
+                      selectedRequest.status === 'approved' ? 'bg-emerald-500' : 
+                      selectedRequest.status === 'rejected' ? 'bg-red-500' : 'bg-slate-200'
+                    }`}>
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold ">
+                        Final Decision {selectedRequest.status !== 'pending' && selectedRequest.status !== 'pending_approval' && selectedRequest.status !== 'pending_acting' && `(${selectedRequest.status})`}
+                      </Typography>
+                      <Typography variant="caption" >
+                        {selectedRequest.deptHeadDecisionDate ? formatDateTime(selectedRequest.deptHeadDecisionDate) : 
+                         selectedRequest.actingOfficerStatus === 'rejected' ? 'Process terminated' : 'Pending your final review'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
             </Box>
           )}
         </DialogContent>

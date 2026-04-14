@@ -107,10 +107,20 @@ const EmployeeProfilePage = () => {
         const currentYear = new Date().getFullYear();
         const ytdLeaves = empLeaves.filter(l => new Date(l.dateRange.from).getFullYear() === currentYear);
         
+        const approvedSum = ytdLeaves
+          .filter(l => l.status === 'approved')
+          .reduce((acc, curr) => acc + (curr.totalDays || 0), 0);
+        const pendingSum = ytdLeaves
+          .filter(l => l.status === 'pending_acting' || l.status === 'pending_approval')
+          .reduce((acc, curr) => acc + (curr.totalDays || 0), 0);
+        const rejectedSum = ytdLeaves
+          .filter(l => l.status === 'rejected')
+          .reduce((acc, curr) => acc + (curr.totalDays || 0), 0);
+        
         setLeaveAnalytics({
-          approved: ytdLeaves.filter(l => l.status === 'approved').length,
-          pending: ytdLeaves.filter(l => l.status === 'pending_acting' || l.status === 'pending_approval').length,
-          rejected: ytdLeaves.filter(l => l.status === 'rejected').length
+          approved: approvedSum,
+          pending: pendingSum,
+          rejected: rejectedSum
         });
       }
     } catch (err) { console.error(err); }
@@ -176,6 +186,27 @@ const EmployeeProfilePage = () => {
   );
 
   const emp = employee;
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return 'Pending...';
+    return new Date(dateStr).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatShortDateTime = (dateStr) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
   
   const roleStyles = {
@@ -513,6 +544,60 @@ const EmployeeProfilePage = () => {
                   </Grid>
                 ))}
               </Grid>
+
+              {/* Distribution by Leave Type (Integrated like Dashboard) */}
+              <Box className="mt-8 pt-8 border-t border-slate-100">
+                <Typography variant="body2" className="font-black mb-6 uppercase tracking-widest text-slate-400" sx={{ fontSize: '0.7rem' }}>
+                  Distribution by Approved Leave Type
+                </Typography>
+                <Box className="space-y-5">
+                  {(() => {
+                    const currentYear = new Date().getFullYear();
+                    const approvedLeaves = leaves.filter(l => 
+                      l.status === 'approved' && 
+                      new Date(l.dateRange.from).getFullYear() === currentYear
+                    );
+                    const uniqueTypes = [...new Set(approvedLeaves.map(l => l.leaveType))].sort();
+                    
+                    if (uniqueTypes.length === 0) {
+                      return (
+                        <Typography variant="caption" className="text-slate-400 italic block py-4 text-center border border-dashed border-slate-100 rounded-2xl">
+                          No approved leave records found for the current calendar year.
+                        </Typography>
+                      );
+                    }
+
+                    return uniqueTypes.map(type => {
+                      const count = approvedLeaves.filter(l => l.leaveType === type).reduce((acc, curr) => acc + (curr.totalDays || 0), 0);
+                      const total = approvedLeaves.reduce((acc, curr) => acc + (curr.totalDays || 0), 0) || 1;
+                      const percentage = Math.round((count / total) * 100);
+                      const typeColors = { Annual: '#6366f1', Medical: '#10b981', Casual: '#f59e0b', Short: '#ec4899' };
+                      const color = typeColors[type] || siteConfig.colors.primary;
+
+                      return (
+                        <Box key={type}>
+                          <Box className="flex justify-between items-center mb-1.5">
+                            <Box className="flex items-center gap-2">
+                              <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                              <Typography variant="body2" className="font-bold ">{type} Leave</Typography>
+                            </Box>
+                            <Typography variant="body2" className="font-black" sx={{ color: 'var(--text-heading)' }}>{count} Days</Typography>
+                          </Box>
+                          <Box className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${percentage}%` }}
+                              className="h-full rounded-full"
+                              transition={{ duration: 1, ease: "easeOut" }}
+                              style={{ backgroundColor: color }}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    });
+                  })()}
+                </Box>
+              </Box>
             </Paper>
           </motion.div>
 
@@ -563,21 +648,35 @@ const EmployeeProfilePage = () => {
                                 <Typography variant="caption" className="font-black text-slate-400">{l.totalDays} Days</Typography>
                              </TableCell>
                              <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                                <Chip 
-                                  label={l.actingOfficerStatus?.toUpperCase()} 
-                                  size="small" 
-                                  variant="outlined"
-                                  color={l.actingOfficerStatus === 'approved' ? 'success' : l.actingOfficerStatus === 'rejected' ? 'error' : 'warning'}
-                                  sx={{ fontWeight: 800, fontSize: '0.6rem' }}
-                                />
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                                  <Chip 
+                                    label={l.actingOfficerStatus?.toUpperCase()} 
+                                    size="small" 
+                                    variant="outlined"
+                                    color={l.actingOfficerStatus === 'approved' ? 'success' : l.actingOfficerStatus === 'rejected' ? 'error' : 'warning'}
+                                    sx={{ fontWeight: 800, fontSize: '0.6rem' }}
+                                  />
+                                  {l.actingOfficerDecisionDate && (
+                                    <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary' }}>
+                                      {formatShortDateTime(l.actingOfficerDecisionDate)}
+                                    </Typography>
+                                  )}
+                                </Box>
                              </TableCell>
                              <TableCell align="center">
-                                <Chip 
-                                  label={l.status?.toUpperCase().replace('_', ' ')} 
-                                  size="small" 
-                                  color={l.status === 'approved' ? 'success' : l.status === 'rejected' ? 'error' : 'warning'}
-                                  sx={{ fontWeight: 800, fontSize: '0.6rem' }}
-                                />
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                                  <Chip 
+                                    label={l.status?.toUpperCase().replace('_', ' ')} 
+                                    size="small" 
+                                    color={l.status === 'approved' ? 'success' : l.status === 'rejected' ? 'error' : 'warning'}
+                                    sx={{ fontWeight: 800, fontSize: '0.6rem' }}
+                                  />
+                                  {l.deptHeadDecisionDate && (
+                                    <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary' }}>
+                                      {formatShortDateTime(l.deptHeadDecisionDate)}
+                                    </Typography>
+                                  )}
+                                </Box>
                              </TableCell>
                           </TableRow>
                         ))}
@@ -595,7 +694,7 @@ const EmployeeProfilePage = () => {
         open={modalOpen} 
         onClose={handleCloseModal}
         fullWidth
-        maxWidth="sm"
+        maxWidth="md"
         slotProps={{
           backdrop: {
             sx: { backdropFilter: 'blur(8px)', backgroundColor: 'rgba(15, 23, 42, 0.4)' }
@@ -644,7 +743,7 @@ const EmployeeProfilePage = () => {
                   <Typography variant="body2" className="font-bold">
                     {formatDate(selectedRequest.dateRange.from)} - {formatDate(selectedRequest.dateRange.to)}
                   </Typography>
-                  <Typography variant="caption" className="font-black text-indigo-500" >{selectedRequest.totalDays} Total Days</Typography>
+                  <Typography variant="caption" className="font-black " >{selectedRequest.totalDays} Total Days</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">Acting Officer</Typography>
@@ -652,6 +751,11 @@ const EmployeeProfilePage = () => {
                     {selectedRequest.actingOfficerId?.firstName} {selectedRequest.actingOfficerId?.lastName}
                   </Typography>
                   {getActingStatusChip(selectedRequest.actingOfficerStatus)}
+                  {selectedRequest.actingOfficerDecisionDate && (
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontWeight: 700, fontSize: '0.65rem' }}>
+                      {formatDateTime(selectedRequest.actingOfficerDecisionDate)}
+                    </Typography>
+                  )}
                 </Box>
               </Box>
 
@@ -663,8 +767,72 @@ const EmployeeProfilePage = () => {
                  <Box>
                     <Typography variant="caption" className="font-bold uppercase tracking-widest" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : selectedRequest.status === 'rejected' ? 'error.main' : 'warning.main' }}>Current Status</Typography>
                     <Typography variant="h5" className="font-black" sx={{ color: selectedRequest.status === 'approved' ? 'success.main' : selectedRequest.status === 'rejected' ? 'error.main' : 'warning.main', textTransform: 'uppercase' }}>{selectedRequest.status?.replace('_', ' ')}</Typography>
+                    {selectedRequest.deptHeadDecisionDate && (
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: selectedRequest.status === 'approved' ? 'success.main' : selectedRequest.status === 'rejected' ? 'error.main' : 'warning.main', opacity: 0.8 }}>
+                        Processed On: {formatDateTime(selectedRequest.deptHeadDecisionDate)}
+                      </Typography>
+                    )}
                  </Box>
                  <Chip label="RECORD" size="small" variant="filled" sx={{ fontWeight: 900, fontSize: '0.6rem', bgcolor: selectedRequest.status === 'approved' ? 'success.main' : selectedRequest.status === 'rejected' ? 'error.main' : 'warning.main', color: 'white' }} />
+              </Box>
+
+              {/* Workflow Timeline Section */}
+              <Box className="mt-8 pt-6 border-t border-slate-100">
+                <Typography variant="caption" className="font-black text-slate-400 uppercase tracking-widest block mb-6">
+                  Workflow Timeline
+                </Typography>
+                
+                <Box className="space-y-6 relative before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-500">
+                  {/* Step 1: applied */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className="w-6 h-6 rounded-full bg-indigo-500 border-4 border-white shadow-sm flex items-center justify-center shrink-0">
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold">Request Submitted</Typography>
+                      <Typography variant="caption" className="flex items-center gap-1.5">
+                        {formatDateTime(selectedRequest.createdAt)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Step 2: acting */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className={`w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center shrink-0 ${
+                      selectedRequest.actingOfficerStatus === 'approved' ? 'bg-emerald-500' : 
+                      selectedRequest.actingOfficerStatus === 'rejected' ? 'bg-red-500' : 'bg-amber-400'
+                    }`}>
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold">
+                        Acting Approval {selectedRequest.actingOfficerStatus !== 'pending' && `(${selectedRequest.actingOfficerStatus})`}
+                      </Typography>
+                      <Typography variant="caption">
+                        {selectedRequest.actingOfficerDecisionDate ? formatDateTime(selectedRequest.actingOfficerDecisionDate) : 'Awaiting response from acting officer'}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Step 3: final */}
+                  <Box className="flex gap-4 relative z-10">
+                    <Box className={`w-6 h-6 rounded-full border-4 border-white shadow-sm flex items-center justify-center shrink-0 ${
+                      selectedRequest.status === 'approved' ? 'bg-emerald-500' : 
+                      selectedRequest.status === 'rejected' ? 'bg-red-500' : 'bg-slate-200'
+                    }`}>
+                      <Box className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" className="font-bold">
+                        Final Approval {selectedRequest.status !== 'pending' && selectedRequest.status !== 'pending_approval' && selectedRequest.status !== 'pending_acting' && `(${selectedRequest.status})`}
+                      </Typography>
+                      <Typography variant="caption">
+                        {selectedRequest.deptHeadDecisionDate ? formatDateTime(selectedRequest.deptHeadDecisionDate) : 
+                         selectedRequest.actingOfficerStatus === 'rejected' ? 'Process terminated' : 'Pending final administrative review'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
               </Box>
 
               {selectedRequest.rejectionReason && (

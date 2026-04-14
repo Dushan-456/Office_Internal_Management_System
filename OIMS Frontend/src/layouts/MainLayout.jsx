@@ -3,11 +3,25 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 import MobileBottomNav from "./MobileBottomNav";
 import { Box } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import useAuthStore from "../store/useAuthStore";
+import useNotificationStore from "../store/useNotificationStore";
 
 const MainLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const { user } = useAuthStore();
+  const { initSocket, disconnectSocket, fetchNotifications } = useNotificationStore();
+
+  useEffect(() => {
+    if (user?.id || user?._id) {
+      const uId = user.id || user._id;
+      initSocket(uId);
+      fetchNotifications();
+    }
+    return () => disconnectSocket();
+  }, [user, initSocket, disconnectSocket, fetchNotifications]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -26,7 +40,7 @@ const MainLayout = () => {
         component="main" 
         sx={{ 
           flexGrow: 1, 
-          width: { xs: '100%', sm: `calc(100% - 280)` },
+          width: { xs: '100%', sm: `calc(100% - 280px)` },
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column'
