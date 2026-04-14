@@ -14,6 +14,26 @@ import {
   getLeaveDeletionNotificationTemplate
 } from "../templates/leaveEmailTemplates.mjs";
 import path from "path";
+import Notification from "../models/Notification.mjs";
+import { emitToUser } from "../utils/socket.mjs";
+import SystemSettings from "../models/SystemSettings.mjs";
+
+const sendNotification = async (recipientId, senderId, type, message, link = "") => {
+  try {
+    const notification = await Notification.create({
+      recipientId,
+      senderId,
+      type,
+      message,
+      link
+    });
+    // Emit real-time event
+    emitToUser(recipientId, "notification", notification);
+    return notification;
+  } catch (error) {
+    console.error("Failed to send notification:", error);
+  }
+};
 
 // Helper for total days excluded weekends
 const calculateTotalDays = (fromDate, toDate) => {
@@ -33,6 +53,11 @@ const calculateTotalDays = (fromDate, toDate) => {
   return count;
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Submit a new leave application and notify the acting officer
+  * @route           POST /api/v1/leaves/apply
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const applyLeave = async (req, res) => {
   try {
     const {
@@ -56,6 +81,19 @@ export const applyLeave = async (req, res) => {
 
     const attachments = req.file ? `/uploads/leaves/${req.file.filename}` : null;
 
+    // Validate balance before creating the request
+    const applicant = await User.findById(applicantId);
+    if (!applicant) {
+      return res.status(404).json({ success: false, message: "Applicant profile not found." });
+    }
+
+    if (applicant.annualLeaveBalance < totalDays) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient leave balance. Requested: ${totalDays}, Available: ${applicant.annualLeaveBalance}.` 
+      });
+    }
+
     const newRequest = await LeaveRequest.create({
       applicantId,
       leaveType,
@@ -73,8 +111,12 @@ export const applyLeave = async (req, res) => {
     // Populate for email
     const actingOfficer = await User.findById(actingOfficerId);
     
+    // Fetch settings for email toggles
+    const settings = await SystemSettings.findOne();
+    const emailToggles = settings?.emailNotifications?.onApply || { applicant: true, actingOfficer: true };
+
     // Send email to Acting Officer
-    if (actingOfficer && actingOfficer.email) {
+    if (emailToggles.actingOfficer && actingOfficer && actingOfficer.email) {
       const actingUrl = `${process.env.FRONTEND_URL}/leaves/acting`;
       const html = getLeaveRequestActingTemplate(
         actingOfficer.firstName,
@@ -91,7 +133,7 @@ export const applyLeave = async (req, res) => {
     }
 
     // Send confirmation email to Applicant
-    if (req.user.email) {
+    if (emailToggles.applicant && req.user.email) {
       const statusUrl = `${process.env.FRONTEND_URL}/leaves/my-details`;
       const html = getLeaveApplicationConfirmationTemplate(
         req.user.firstName,
@@ -110,12 +152,26 @@ export const applyLeave = async (req, res) => {
       message: "Leave application submitted successfully.",
       data: newRequest,
     });
+
+    // --- Real-time Notification ---
+    sendNotification(
+      actingOfficerId,
+      applicantId,
+      "LEAVE_APPLIED",
+      `${req.user.firstName} ${req.user.lastName} has nominated you as Acting Officer for a leave request.`,
+      "/leaves/acting"
+    );
   } catch (error) {
     console.error("Apply Leave Error:", error);
     res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Endorse or decline an acting role nomination by an applicant
+  * @route           PATCH /api/v1/leaves/acting-approve/:id
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const approveActing = async (req, res) => {
   try {
     const leaveId = req.params.id;
@@ -139,7 +195,12 @@ export const approveActing = async (req, res) => {
     }
 
     leaveRequest.actingOfficerStatus = status;
+    leaveRequest.actingOfficerDecisionDate = Date.now();
     
+    // Fetch settings for email toggles
+    const settings = await SystemSettings.findOne();
+    const emailToggles = settings?.emailNotifications?.onActingDecision || { applicant: true, actingOfficer: true, approver: true };
+
     if (status === "approved") {
       leaveRequest.status = "pending_approval";
       
@@ -149,7 +210,7 @@ export const approveActing = async (req, res) => {
       const statusUrl = `${process.env.FRONTEND_URL}/leaves/my-details`;
 
       // 1. Send email to Dept Head
-      if (deptHead && deptHead.email) {
+      if (emailToggles.approver && deptHead && deptHead.email) {
         const approvalUrl = `${process.env.FRONTEND_URL}/leaves/requests`;
         const html = getLeaveNotifyDeptHeadTemplate(
           deptHead.firstName,
@@ -167,7 +228,7 @@ export const approveActing = async (req, res) => {
       }
 
       // 2. Send Approval email to Applicant
-      if (applicant && applicant.email) {
+      if (emailToggles.applicant && applicant && applicant.email) {
         const html = getActingOfficerApprovalApplicantTemplate(
           applicant.firstName,
           `Acting Officer (${actingOfficer ? actingOfficer.firstName : 'Assigned Member'})`,
@@ -181,7 +242,7 @@ export const approveActing = async (req, res) => {
       }
 
       // 3. Send confirmation email to Acting Officer
-      if (actingOfficer && actingOfficer.email) {
+      if (emailToggles.actingOfficer && actingOfficer && actingOfficer.email) {
         const actingHtml = getActingOfficerApprovalConfirmationTemplate(
           actingOfficer.firstName,
           `${applicant.firstName} ${applicant.lastName}`
@@ -201,7 +262,7 @@ export const approveActing = async (req, res) => {
       const statusUrl = `${process.env.FRONTEND_URL}/leaves/my-details`;
 
       // 1. Send rejection email to applicant
-      if (applicant && applicant.email) {
+      if (emailToggles.applicant && applicant && applicant.email) {
          const html = getActingOfficerRejectionApplicantTemplate(
            applicant.firstName,
            `Acting Officer (${actingOfficer ? actingOfficer.firstName : 'Assigned Member'})`,
@@ -215,7 +276,7 @@ export const approveActing = async (req, res) => {
       }
 
       // 2. Send confirmation email to Acting Officer
-      if (actingOfficer && actingOfficer.email) {
+      if (emailToggles.actingOfficer && actingOfficer && actingOfficer.email) {
         const actingHtml = getActingOfficerRejectionConfirmationTemplate(
           actingOfficer.firstName,
           `${applicant.firstName} ${applicant.lastName}`
@@ -230,6 +291,38 @@ export const approveActing = async (req, res) => {
 
     await leaveRequest.save();
 
+    // --- Real-time Notifications ---
+    const applicant = leaveRequest.applicantId;
+    const actingOfficer = await User.findById(actingUserId);
+    
+    if (status === "approved") {
+      // Notify Applicant
+      sendNotification(
+        applicant._id,
+        actingUserId,
+        "ACTING_DECISION",
+        `${actingOfficer.firstName} ${actingOfficer.lastName} (Acting) has endorsed your leave request.`,
+        "/leaves/my-details"
+      );
+      // Notify Dept Head
+      sendNotification(
+        leaveRequest.approveOfficerId._id,
+        actingUserId,
+        "LEAVE_APPLIED",
+        `${applicant.firstName} ${applicant.lastName}'s leave request is endorsed by Acting Officer and awaits your final approval.`,
+        "/leaves/requests"
+      );
+    } else {
+      // Notify Applicant of rejection
+      sendNotification(
+        applicant._id,
+        actingUserId,
+        "ACTING_DECISION",
+        `${actingOfficer.firstName} ${actingOfficer.lastName} (Acting) has declined to act for your leave request.`,
+        "/leaves/my-details"
+      );
+    }
+
     res.status(200).json({
       success: true,
       message: "Leave request approved by acting officer.",
@@ -241,6 +334,11 @@ export const approveActing = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Finalize leave request by Department Head (Approve/Reject)
+  * @route           PATCH /api/v1/leaves/final-decision/:id
+  * @access          Private (Dept Head)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const finalDecision = async (req, res) => {
   try {
     const leaveId = req.params.id;
@@ -267,6 +365,7 @@ export const finalDecision = async (req, res) => {
 
     leaveRequest.deptHeadStatus = status;
     leaveRequest.status = status;
+    leaveRequest.deptHeadDecisionDate = Date.now();
     
     if (status === "rejected" && rejectionReason) {
       leaveRequest.rejectionReason = rejectionReason;
@@ -274,21 +373,57 @@ export const finalDecision = async (req, res) => {
 
     await leaveRequest.save();
 
-    // Deduct leave balance if approved
+    // --- Real-time Notifications ---
     const applicant = leaveRequest.applicantId;
+    
+    // Notify Applicant
+    sendNotification(
+      applicant._id,
+      deptHeadId,
+      "FINAL_DECISION",
+      `Your leave request was ${status} by Department Head.`,
+      "/leaves/my-details"
+    );
+
+    // Notify Acting Officer
+    if (leaveRequest.actingOfficerId) {
+      sendNotification(
+        leaveRequest.actingOfficerId._id,
+        deptHeadId,
+        "FINAL_DECISION",
+        `The leave request for ${applicant.firstName} ${applicant.lastName} you acted for has been ${status}.`,
+        "/leaves/acting"
+      );
+    }
+
+    // Deduct leave balance if approved
     if (status === "approved") {
       const applicantUser = await User.findById(applicant._id);
-      if (applicantUser && applicantUser.annualLeaveBalance >= leaveRequest.totalDays) {
-        applicantUser.annualLeaveBalance -= leaveRequest.totalDays;
-        await applicantUser.save();
+      if (!applicantUser || applicantUser.annualLeaveBalance < leaveRequest.totalDays) {
+        // Revert status if balance is suddenly insufficient
+        leaveRequest.status = "pending_approval";
+        leaveRequest.deptHeadStatus = "pending";
+        await leaveRequest.save();
+        
+        return res.status(400).json({ 
+          success: false, 
+          message: `Approval failed. Applicant has insufficient leave balance (${applicantUser?.annualLeaveBalance || 0} days available).` 
+        });
       }
+      
+      applicantUser.annualLeaveBalance -= leaveRequest.totalDays;
+      await applicantUser.save();
     }
 
     // --- Send final notification emails ---
     const applicantName = `${applicant.firstName} ${applicant.lastName}`;
+    
+    // Fetch settings for email toggles
+    const settings = await SystemSettings.findOne();
+    const emailToggles = settings?.emailNotifications?.onFinalDecision || { applicant: true, actingOfficer: true, approver: true };
 
     // 1. To Applicant
-    if (applicant && applicant.email) {
+    if (emailToggles.applicant && applicant && applicant.email) {
         const statusUrl = `${process.env.FRONTEND_URL}/leaves/my-details`;
         const html = getLeaveFinalDecisionTemplate(
           applicant.firstName,
@@ -302,7 +437,7 @@ export const finalDecision = async (req, res) => {
 
     // 2. To Acting Officer (Confirmation)
     const actingOfficer = leaveRequest.actingOfficerId;
-    if (actingOfficer && actingOfficer.email) {
+    if (emailToggles.actingOfficer && actingOfficer && actingOfficer.email) {
       const actingHtml = getLeaveFinalDecisionConfirmationTemplate(
         actingOfficer.firstName,
         applicantName,
@@ -314,7 +449,7 @@ export const finalDecision = async (req, res) => {
 
     // 3. To Department Head (Reviewer Confirmation)
     const deptHead = leaveRequest.approveOfficerId;
-    if (deptHead && deptHead.email) {
+    if (emailToggles.approver && deptHead && deptHead.email) {
       const dhHtml = getLeaveFinalDecisionConfirmationTemplate(
         deptHead.firstName,
         applicantName,
@@ -335,6 +470,11 @@ export const finalDecision = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Withdraw/Delete a pending leave request
+  * @route           DELETE /api/v1/leaves/:id
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const deleteLeaveRequest = async (req, res) => {
   try {
     const leaveId = req.params.id;
@@ -393,6 +533,11 @@ export const deleteLeaveRequest = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Update/Edit an existing pending leave request
+  * @route           PUT /api/v1/leaves/:id
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const updateLeaveRequest = async (req, res) => {
   try {
     const leaveId = req.params.id;
@@ -427,6 +572,15 @@ export const updateLeaveRequest = async (req, res) => {
       totalDays = 0.5;
     }
 
+    // Validate balance if the total days are changing or it's a new check
+    const applicant = await User.findById(req.user.id);
+    if (applicant.annualLeaveBalance < totalDays) {
+       return res.status(400).json({ 
+         success: false, 
+         message: `Insufficient leave balance for this update. Requested: ${totalDays}, Available: ${applicant.annualLeaveBalance}.` 
+       });
+    }
+
     const updates = {
       leaveType,
       category,
@@ -459,6 +613,11 @@ export const updateLeaveRequest = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get all leave requests for the currently logged-in applicant
+  * @route           GET /api/v1/leaves/my-requests
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getMyLeaveRequests = async (req, res) => {
   try {
     const requests = await LeaveRequest.find({ applicantId: req.user.id })
@@ -473,6 +632,11 @@ export const getMyLeaveRequests = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get leave requests where the user is nominated as Acting Officer (Pending decision)
+  * @route           GET /api/v1/leaves/pending-acting
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getPendingActingRequests = async (req, res) => {
   try {
     const requests = await LeaveRequest.find({ actingOfficerId: req.user.id, status: "pending_acting" })
@@ -486,6 +650,11 @@ export const getPendingActingRequests = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get all leave requests (history) where the user was nominated as Acting Officer
+  * @route           GET /api/v1/leaves/all-acting
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getAllActingRequests = async (req, res) => {
   try {
     const requests = await LeaveRequest.find({ actingOfficerId: req.user.id })
@@ -499,6 +668,11 @@ export const getAllActingRequests = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get leave requests awaiting final approval from the Department Head
+  * @route           GET /api/v1/leaves/pending-approval
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getPendingApprovalRequests = async (req, res) => {
   try {
     const requests = await LeaveRequest.find({ approveOfficerId: req.user.id, status: "pending_approval" })
@@ -513,6 +687,11 @@ export const getPendingApprovalRequests = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get the count of active pending leave requests for the logged-in user
+  * @route           GET /api/v1/leaves/my-pending-count
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getMyPendingCount = async (req, res) => {
   try {
     const count = await LeaveRequest.countDocuments({
@@ -526,6 +705,11 @@ export const getMyPendingCount = async (req, res) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get all leave requests (filtered by department for Dept Heads)
+  * @route           GET /api/v1/leaves/all
+  * @access          Private (Admin, DeptHead)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getAllLeaveRequests = async (req, res) => {
   try {
     const filter = {};
@@ -544,6 +728,11 @@ export const getAllLeaveRequests = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get the leave history of a specific employee
+  * @route           GET /api/v1/leaves/employee/:userId
+  * @access          Private (Admin, DeptHead)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getEmployeeLeaveHistory = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -564,6 +753,129 @@ export const getEmployeeLeaveHistory = async (req, res) => {
     res.status(200).json({ success: true, data: requests });
   } catch (error) {
     console.error("Get Employee Leave History Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get all approved leaves formatted for FullCalendar display
+  * @route           GET /api/v1/leaves/calendar
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+export const getCalendarData = async (req, res) => {
+  try {
+    const filter = { status: "approved" };
+
+    // If not ADMIN, filter by current user's department
+    if (req.user.role !== "ADMIN") {
+      const departmentUsers = await User.find({ department: req.user.department }).select("_id");
+      const userIds = departmentUsers.map(u => u._id);
+      filter.applicantId = { $in: userIds };
+    }
+
+    const leaves = await LeaveRequest.find(filter)
+      .populate("applicantId", "firstName lastName department profilePicture")
+      .select("applicantId leaveType category dateRange totalDays");
+
+    // Standardize for FullCalendar
+    const events = leaves.map(leave => {
+      const endDate = new Date(leave.dateRange.to);
+      endDate.setDate(endDate.getDate() + 1); // FullCalendar end is exclusive
+
+      return {
+        id: leave._id,
+        title: `${leave.applicantId.firstName} ${leave.applicantId.lastName} - ${leave.leaveType}`,
+        start: leave.dateRange.from,
+        end: endDate,
+        allDay: true,
+        extendedProps: {
+          department: leave.applicantId.department,
+          leaveType: leave.leaveType,
+          category: leave.category,
+          actualEnd: leave.dateRange.to, // Keep original for display
+          totalDays: leave.totalDays,
+          profilePicture: leave.applicantId.profilePicture
+        }
+      };
+    });
+
+    res.status(200).json({ success: true, data: events });
+  } catch (error) {
+    console.error("Get Calendar Data Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get departmental leave summary for the dashboard (Today & Upcoming 14 days)
+  * @route           GET /api/v1/leaves/dashboard-summary
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+export const getDashboardLeaves = async (req, res) => {
+  try {
+    const settings = await SystemSettings.findOne();
+    const visibility = settings?.dashboardLeaveVisibility || "ALL";
+
+    // Visibility Logic: If restricted, only ADMIN and DEPT_HEAD can see the full list
+    if (visibility === "DEPT_HEAD_ONLY" && req.user.role === "EMPLOYEE") {
+      return res.status(200).json({ 
+        success: true, 
+        message: "Visibility restricted to Department Heads only.",
+        data: { today: [], upcoming: [] }
+      });
+    }
+
+    const tz = settings?.timezone || "Asia/Colombo";
+    
+    // Get current date string in the target timezone (YYYY-MM-DD)
+    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+    const today = new Date(`${todayStr}T00:00:00Z`);
+
+    const next14Days = new Date(today);
+    next14Days.setDate(today.getDate() + 15);
+    const next14Str = next14Days.toISOString().split('T')[0];
+
+    // Filter by department
+    const userDept = req.user.department;
+
+    // Find all approved leaves in this department
+    const departmentUsers = await User.find({ department: userDept }).select("_id");
+    const userIds = departmentUsers.map(u => u._id);
+
+    // Fetch leaves that overlap with [today, today + 14]
+    const leaves = await LeaveRequest.find({
+      status: "approved",
+      applicantId: { $in: userIds },
+      $or: [
+        // Starts on or before today and ends on or after today (Today)
+        { "dateRange.from": { $lte: next14Days }, "dateRange.to": { $gte: today } }
+      ]
+    })
+    .populate("applicantId", "firstName lastName profilePicture department")
+    .sort({ "dateRange.from": 1 });
+
+    const todayLeaves = leaves.filter(l => {
+      const from = l.dateRange.from.toISOString().split('T')[0];
+      const to = l.dateRange.to.toISOString().split('T')[0];
+      return from <= todayStr && to >= todayStr;
+    });
+
+    const upcomingLeaves = leaves.filter(l => {
+      const from = l.dateRange.from.toISOString().split('T')[0];
+      const to = l.dateRange.to.toISOString().split('T')[0];
+      // Include if it starts in the future OR it's currently active but continues into the future
+      return from > todayStr || (from <= todayStr && to > todayStr);
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        today: todayLeaves,
+        upcoming: upcomingLeaves
+      }
+    });
+  } catch (error) {
+    console.error("Dashboard Summary Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
