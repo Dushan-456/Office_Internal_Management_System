@@ -8,7 +8,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { errorHandler } from "./src/middleware/errorMiddleware.mjs";
 import morgan from "morgan";
+import { createServer } from "http";
 import connectDB from "./src/config/db.mjs";
+import { initIO } from "./src/utils/socket.mjs";
+import reminderEngine from "./src/services/reminderEngine.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,9 +75,17 @@ server.use(errorHandler);
 // Connect to MongoDB and start the server
 const startServer = async () => {
   await connectDB();
+  
+  const httpServer = createServer(server);
+  
+  // Initialize Socket.io
+  initIO(httpServer);
 
-  const httpServer = server.listen(PORT, () =>
-    console.log(`Server is running........on port ${PORT}  :)`)
+  // Start Reminder Engine
+  reminderEngine.start();
+
+  httpServer.listen(PORT, () =>
+    console.log(`Server is running with Socket.io on port ${PORT}  :)`)
   );
 
   // Graceful shutdown
