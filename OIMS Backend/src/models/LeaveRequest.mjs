@@ -100,6 +100,14 @@ const leaveRequestSchema = new mongoose.Schema(
       trim: true,
       default: null,
     },
+    actingOfficerDecisionDate: {
+      type: Date,
+      default: null,
+    },
+    deptHeadDecisionDate: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
