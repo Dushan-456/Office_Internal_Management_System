@@ -11,6 +11,11 @@ const signToken = (id) => {
   });
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Authenticate user and return JWT token
+  * @route           POST /api/v1/auth/login
+  * @access          Public
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -48,6 +53,11 @@ export const login = async (req, res, next) => {
   }
 };
 
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Update currently logged-in user password
+  * @route           PATCH /api/v1/auth/update-password
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const updatePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -79,6 +89,11 @@ export const updatePassword = async (req, res, next) => {
 };
 
 // ─── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Trigger password reset flow (Self-service or Admin-triggered)
+  * @route           POST /api/v1/auth/forgot-password, POST /api/v1/auth/admin-reset-password/:id
+  * @access          Public / Private (Admin)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const forgotPassword = async (req, res, next) => {
   try {
     let user;
@@ -132,6 +147,11 @@ export const forgotPassword = async (req, res, next) => {
 };
 
 // ─── RESET PASSWORD ────────────────────────────────────────────────────────────
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Reset password using token from forgotPassword flow
+  * @route           POST /api/v1/auth/reset-password/:token
+  * @access          Public
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const resetPassword = async (req, res, next) => {
   try {
     // 1) Get user based on the token
