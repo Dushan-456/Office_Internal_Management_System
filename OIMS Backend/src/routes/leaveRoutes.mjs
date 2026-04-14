@@ -14,7 +14,9 @@ import {
   getEmployeeLeaveHistory,
   deleteLeaveRequest,
   updateLeaveRequest,
-  getMyPendingCount
+  getMyPendingCount,
+  getCalendarData,
+  getDashboardLeaves
 } from "../controllers/leaveController.mjs";
 
 const router = Router();
@@ -63,6 +65,8 @@ router.get("/pending-approval", getPendingApprovalRequests);
 
 // Get all requests (for Admin or Dept Head summary)
 router.get("/all", getAllLeaveRequests);
+router.get("/calendar", getCalendarData);
+router.get("/dashboard-summary", getDashboardLeaves);
 router.get("/employee/:userId", getEmployeeLeaveHistory);
 
 // Acting Officer Approval
