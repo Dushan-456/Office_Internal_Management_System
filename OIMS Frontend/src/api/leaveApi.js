@@ -35,8 +35,14 @@ export const leaveApi = {
   // Get specific employee's leave history
   getEmployeeLeaves: (userId) => api.get(`/leaves/employee/${userId}`),
 
+  // Get dashboard summary
+  getDashboardSummary: () => api.get('/leaves/dashboard-summary'),
+
   // Acting officer sets to pending_approval or rejects
   approveActing: (id, status) => api.patch(`/leaves/acting-approve/${id}`, { status }),
+
+  // Get calendar data (approved leaves)
+  getCalendarData: () => api.get('/leaves/calendar'),
 
   // Dept Head makes final decision
   finalDecision: (id, status, rejectionReason) => api.patch(`/leaves/final-decision/${id}`, { status, rejectionReason }),
