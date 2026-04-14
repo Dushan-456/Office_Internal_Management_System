@@ -1,8 +1,12 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.mjs";
+import SystemSettings from "../models/SystemSettings.mjs";
 
-// ─── CREATE ────────────────────────────────────────────────────────────────────
-// POST /api/v1/employees
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Create a new employee record (Admin only)
+  * @route           POST /api/v1/employees
+  * @access          Private (Admin)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const createEmployee = async (req, res, next) => {
   try {
     const data = { ...req.body };
@@ -27,6 +31,14 @@ export const createEmployee = async (req, res, next) => {
       data.profilePicture = `/uploads/profiles/${req.file.filename}`;
     }
 
+    // Fetch default annual balance from settings if not explicitly provided in request
+    if (data.annualLeaveBalance === undefined) {
+      const settings = await SystemSettings.findOne();
+      if (settings) {
+        data.annualLeaveBalance = settings.annualLeaveBalance;
+      }
+    }
+
     const newUser = await User.create(data);
 
     res.status(201).json({
@@ -38,8 +50,11 @@ export const createEmployee = async (req, res, next) => {
   }
 };
 
-// ─── READ ALL ──────────────────────────────────────────────────────────────────
-// GET /api/v1/employees
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get a paginated list of all employees (Admin/DeptHead only)
+  * @route           GET /api/v1/employees
+  * @access          Private (Admin, DeptHead)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getAllEmployees = async (req, res, next) => {
   try {
     const { search, department, employeeType, page = 1, limit = 20 } = req.query;
@@ -87,8 +102,11 @@ export const getAllEmployees = async (req, res, next) => {
   }
 };
 
-// ─── READ ONE ──────────────────────────────────────────────────────────────────
-// GET /api/v1/employees/:id
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get detailed information for a specific employee
+  * @route           GET /api/v1/employees/:id
+  * @access          Private (Admin, DeptHead)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getEmployeeById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
@@ -117,8 +135,11 @@ export const getEmployeeById = async (req, res, next) => {
   }
 };
 
-// ─── READ ME ───────────────────────────────────────────────────────────────────
-// GET /api/v1/employees/me
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get currently authenticated user's profile
+  * @route           GET /api/v1/employees/me
+  * @access          Private
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -139,8 +160,11 @@ export const getMe = async (req, res, next) => {
   }
 };
 
-// ─── UPDATE ────────────────────────────────────────────────────────────────────
-// PUT /api/v1/employees/:id
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Update an existing employee record
+  * @route           PUT /api/v1/employees/:id
+  * @access          Private (Admin)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const updateEmployee = async (req, res, next) => {
   try {
     const data = { ...req.body };
@@ -189,8 +213,11 @@ export const updateEmployee = async (req, res, next) => {
   }
 };
 
-// ─── DELETE ────────────────────────────────────────────────────────────────────
-// DELETE /api/v1/employees/:id
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Delete an employee record
+  * @route           DELETE /api/v1/employees/:id
+  * @access          Private (Admin)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const deleteEmployee = async (req, res, next) => {
   try {
     const deleted = await User.findByIdAndDelete(req.params.id);
@@ -211,8 +238,11 @@ export const deleteEmployee = async (req, res, next) => {
   }
 };
 
-// ─── STATS ─────────────────────────────────────────────────────────────────────
-// GET /api/v1/employees/stats
+/**------------------------------------------------------------------------------------------------------------------------------------------------------------
+  * @description     Get high-level organizational statistics (Headcount, Department distribution)
+  * @route           GET /api/v1/employees/stats
+  * @access          Private (Admin)
+  ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getStats = async (req, res, next) => {
   try {
     const [totalEmployees, byDepartment, byEmployeeType] = await Promise.all([
