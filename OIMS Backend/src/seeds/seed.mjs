@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import connectDB from "../config/db.mjs";
 import User from "../models/User.mjs";
+import SystemSettings from "../models/SystemSettings.mjs";
 
 async function main() {
   console.log("Connecting to MongoDB...");
@@ -36,6 +37,16 @@ async function main() {
   );
 
   console.log("Default Admin created or already exists!");
+  
+  console.log("Seeding default System Settings...");
+  const settingsCount = await SystemSettings.countDocuments();
+  if (settingsCount === 0) {
+    await SystemSettings.create({});
+    console.log("Default System Settings created.");
+  } else {
+    console.log("System Settings already exist.");
+  }
+
   console.log("--- LOGIN CREDENTIALS ---");
   console.log("Email: admin@office.com");
   console.log("Password: admin123");
