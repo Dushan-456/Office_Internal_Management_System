@@ -13,6 +13,7 @@ import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -21,6 +22,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { getMyProfile, updatePassword } from '../../api/employeeApi';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { siteConfig } from '../../config/siteConfig';
 
 const SectionHeader = ({ icon, title }) => (
@@ -57,6 +59,7 @@ const InfoRow = ({ icon, label, value, color = siteConfig.colors.primary }) => (
 );
 
 const MyProfilePage = () => {
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -255,6 +258,42 @@ const MyProfilePage = () => {
                   </Box>
                 </Box>
               </Stack>
+              
+              <Box className=" pt-6 flex gap-3 w-full px-5 space-y-3">
+                <Button 
+                  fullWidth 
+                  variant="contained" 
+                  startIcon={<EventNoteIcon />}
+                  onClick={() => navigate(`/attendance/my-details`)}
+                  sx={{ 
+                    borderRadius: '16px', 
+                    textTransform: 'none', 
+                    fontWeight: 800, 
+                    py: 1.6,
+                    bgcolor: siteConfig.colors.primary,
+                    boxShadow: '0 8px 16px -4px rgba(99, 102, 241, 0.3)'
+                  }}
+                >
+                  Attendance
+                </Button>
+                <Button 
+                  fullWidth 
+                  variant="outlined" 
+                  startIcon={<WorkHistoryIcon />}
+                  onClick={() => navigate(`/leaves/my-details`)}
+                  sx={{ 
+                    borderRadius: '16px', 
+                    textTransform: 'none', 
+                    fontWeight: 800, 
+                    py: 1.6,
+                    borderColor: 'var(--glass-border)',
+                    color: 'var(--text-heading)',
+                    '&:hover': { bgcolor: 'rgba(0,0,0,0.02)', borderColor: 'var(--text-heading)' }
+                  }}
+                >
+                  Leaves
+                </Button>
+              </Box>
             </Paper>
           </motion.div>
         </Box>
