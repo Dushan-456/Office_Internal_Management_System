@@ -21,6 +21,9 @@ import MyLeaveDetailsPage from "../pages/employee/MyLeaveDetailsPage";
 import LeaveApprovalDashboard from "../pages/admin/LeaveApprovalDashboard";
 import LeaveCalendarPage from "../pages/employee/LeaveCalendarPage";
 import SystemSettingsPage from "../pages/admin/SystemSettingsPage";
+import MyAttendancePage from "../pages/employee/MyAttendancePage";
+import AdminAttendancePage from "../pages/admin/AdminAttendancePage";
+import OTCalculatorPage from "../pages/employee/OTCalculatorPage";
 import ComingSoon from "../components/ComingSoon";
 
 const router = createBrowserRouter([
@@ -54,14 +57,15 @@ const router = createBrowserRouter([
             path: "admin",
             element: <ProtectedRouter ProtectedRole="ADMIN" />,
             children: [
-              { path: "settings", element: <SystemSettingsPage /> }
+              { path: "settings", element: <SystemSettingsPage /> },
+              { path: "attendance/upload", element: <AdminAttendancePage /> },
             ]
           },
 
           // --- Employee Management ---
           {
             path: "employees",
-            element: <ProtectedRouter ProtectedRole="DEPT_HEAD" />,
+            element: <ProtectedRouter ProtectedRole={["DEPT_HEAD", "TOP_ADMIN"]} />,
             children: [
               { index: true, element: <AllEmployeesPage /> },
               {
@@ -74,7 +78,11 @@ const router = createBrowserRouter([
               },
               {
                 path: ":id",
-                element: <EmployeeProfilePage />
+                children: [
+                  { index: true, element: <EmployeeProfilePage /> },
+                  { path: "attendance", element: <MyAttendancePage /> },
+                  { path: "leaves", element: <MyLeaveDetailsPage /> },
+                ]
               },
             ]
           },
@@ -85,13 +93,18 @@ const router = createBrowserRouter([
             children: [
               { path: "apply", element: <LeaveApplicationForm /> },
               { path: "acting", element: <ActingRequestsPage /> },
-              { path: "requests", element: <ProtectedRouter ProtectedRole="DEPT_HEAD"><LeaveApprovalDashboard /></ProtectedRouter> },
+              { path: "requests", element: <ProtectedRouter ProtectedRole={["DEPT_HEAD", "TOP_ADMIN"]}><LeaveApprovalDashboard /></ProtectedRouter> },
               { path: "my-details", element: <MyLeaveDetailsPage /> },
               { path: "calendar", element: <LeaveCalendarPage /> }
             ]
           },
-          { path: "attendance", element: <ComingSoon title="My Attendance Coming Soon" /> },
-          { path: "ot-calculator", element: <ComingSoon title="OT Calculator Coming Soon" /> },
+          {
+            path: "attendance",
+            children: [
+              { path: "my-details", element: <MyAttendancePage /> }
+            ]
+          },
+          { path: "ot-calculator", element: <OTCalculatorPage /> },
           { path: "vehicle-request", element: <ComingSoon title="Vehicle Request Coming Soon" /> },
           { path: "*", element: <Error404Page /> },
         ],
