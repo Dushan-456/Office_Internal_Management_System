@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { leaveApi } from '../../api/leaveApi';
@@ -29,7 +31,7 @@ const LeaveApplicationForm = () => {
   const [success, setSuccess] = useState(false);
   const [directory, setDirectory] = useState([]);
   const [enums, setEnums] = useState(null);
-  const [attachmentFile, setAttachmentFile] = useState(null);
+  const [attachmentFiles, setAttachmentFiles] = useState([]);
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
@@ -102,10 +104,19 @@ const LeaveApplicationForm = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAttachmentFile(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setAttachmentFiles(prev => {
+        const combined = [...prev, ...files];
+        return combined.slice(0, 5); // Max 5 files
+      });
     }
+    // Reset input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRemoveFile = (index) => {
+    setAttachmentFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDragOver = (e) => {
@@ -125,9 +136,12 @@ const LeaveApplicationForm = () => {
     e.stopPropagation();
     setIsDragging(false);
     
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      setAttachmentFile(file);
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length > 0) {
+      setAttachmentFiles(prev => {
+        const combined = [...prev, ...files];
+        return combined.slice(0, 5); // Max 5 files
+      });
     }
   };
 
@@ -153,9 +167,9 @@ const LeaveApplicationForm = () => {
     submitData.append('reason', formData.reason);
     submitData.append('actingOfficerId', formData.actingOfficerId);
     submitData.append('approveOfficerId', formData.approveOfficerId);
-    if (attachmentFile) {
-      submitData.append('attachments', attachmentFile);
-    }
+    attachmentFiles.forEach((file) => {
+      submitData.append('attachments', file);
+    });
 
     try {
       if (isEditMode) {
@@ -189,9 +203,9 @@ const LeaveApplicationForm = () => {
     actingOfficers = directory.filter(u => u.role === 'DEPT_HEAD' && u.id !== user?.id);
     approveOfficers = directory.filter(u => u.role === 'TOP_ADMIN');
   } else {
-    // Default / EMPLOYEE / ADMIN Case: Acting is same dept employee, Approve is DEPT_HEAD
+    // Default / EMPLOYEE / ADMIN Case: Acting is same dept employee, Approve is DEPT_HEAD OR TOP_ADMIN
     actingOfficers = directory.filter(u => u.department === user?.department && u.id !== user?.id && (u.role === 'EMPLOYEE' || u.role === 'ADMIN'));
-    approveOfficers = directory.filter(u => u.role === 'DEPT_HEAD');
+    approveOfficers = directory.filter(u => u.role === 'DEPT_HEAD' || u.role === 'TOP_ADMIN');
   }
 
   if (!enums) {
@@ -199,7 +213,7 @@ const LeaveApplicationForm = () => {
   }
 
   return (
-    <Box className="max-w-4xl mx-auto px-1">
+    <Box className="max-w-5xl mx-auto px-1">
       <Box className="flex items-center gap-3 mb-6 md:mb-8">
         <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: 'white', shadow: 1 }}>
           <ArrowBackIcon />
@@ -210,8 +224,11 @@ const LeaveApplicationForm = () => {
       </Box>
 
       <form onSubmit={handleSubmit(onSubmit)}>
+        
         <Box className="space-y-6 md:space-y-8">
-          <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
+          <div className='md:flex gap-5'>
+          
+          <Paper className="glass-card p-5 md:p-8 mt-2 rounded-[2rem]">
             <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
               <Box className="w-2 h-6 rounded-full" style={{ backgroundColor: siteConfig.colors.primary }} />
               Applicant Details
@@ -222,6 +239,7 @@ const LeaveApplicationForm = () => {
                 value={user ? `${user.firstName} ${user.lastName}` : ''} 
                 fullWidth 
                 variant="outlined" 
+                disabled
                 InputProps={{ readOnly: true }}
                 slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} 
               />
@@ -231,17 +249,36 @@ const LeaveApplicationForm = () => {
                 fullWidth 
                 variant="outlined" 
                 InputProps={{ readOnly: true }}
+                disabled
                 slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} 
+              />
+                <Controller
+                name="reason"
+                control={control}
+                rules={{ required: 'Reason for leave is required' }}
+                render={({ field }) => (
+                  <TextField 
+                    {...field} 
+                    label="Reason for Leave *" 
+                    fullWidth 
+                    multiline 
+                    rows={5} 
+                    className="md:col-span-2" 
+                    error={!!errors.reason} 
+                    helperText={errors.reason?.message} 
+                    slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} 
+                  />
+                )}
               />
             </Box>
           </Paper>
 
-          <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
+          <Paper className="glass-card p-5 md:p-8 mt-2 rounded-[2rem]">
             <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
               <Box className="w-2 h-6 rounded-full" style={{ backgroundColor: siteConfig.colors.secondary }} />
               Leave Requirements
             </Typography><br />
-            <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <Box className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
               <Controller
                 name="leaveType"
                 control={control}
@@ -354,35 +391,20 @@ const LeaveApplicationForm = () => {
                   />
                 )}
               />
-              <Controller
-                name="reason"
-                control={control}
-                rules={{ required: 'Reason for leave is required' }}
-                render={({ field }) => (
-                  <TextField 
-                    {...field} 
-                    label="Reason for Leave *" 
-                    fullWidth 
-                    multiline 
-                    rows={2} 
-                    className="md:col-span-2" 
-                    error={!!errors.reason} 
-                    helperText={errors.reason?.message} 
-                    slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} 
-                  />
-                )}
-              />
+         
               
+            </Box>
               <TextField 
                 label={`Total Days (excluding weekends)`}
                 value={totalDays} 
                 fullWidth 
+                disabled
                 variant="outlined" 
                 InputProps={{ readOnly: true }}
                 slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} 
               />
-            </Box>
           </Paper>
+        </div>
 
           <Paper className="glass-card p-5 md:p-8 rounded-[2rem]">
             <Typography variant="h6" className="font-bold mb-6 flex items-center gap-2" sx={{ color: 'var(--text-heading)', fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
@@ -445,13 +467,14 @@ const LeaveApplicationForm = () => {
                 )}
               />
               <Box className="md:col-span-2">
-                <Typography variant="body2" className="mb-2 font-medium" sx={{ color: 'var(--text-muted)' }}>Supporting Attachments (Optional)</Typography><br />
+                <Typography variant="body2" className="mb-2 font-medium" sx={{ color: 'var(--text-muted)' }}>Supporting Attachments (Optional — up to 5 files)</Typography><br />
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   onChange={handleFileChange} 
                   style={{ display: 'none' }}
                   id="attachment-file"
+                  multiple
                 />
                 <Box
                   onDragOver={handleDragOver}
@@ -473,10 +496,53 @@ const LeaveApplicationForm = () => {
                     }
                   }}
                 >
+                  <AttachFileIcon sx={{ color: isDragging ? siteConfig.colors.primary : '#94a3b8', fontSize: 28, mb: 1 }} />
                   <Typography variant="body2" className="font-bold" sx={{ color: isDragging ? siteConfig.colors.primary : 'var(--text-muted)' }}>
-                    {attachmentFile ? `Selected: ${attachmentFile.name}` : 'Drag and drop files here or click to browse'}
+                    {attachmentFiles.length >= 5 ? 'Maximum 5 files reached' : 'Drag and drop files here or click to browse'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#94a3b8', mt: 0.5, display: 'block' }}>
+                    {attachmentFiles.length} / 5 files selected • Max 10MB per file
                   </Typography>
                 </Box>
+
+                {/* Selected Files List */}
+                {attachmentFiles.length > 0 && (
+                  <Box className="mt-3 space-y-2">
+                    {attachmentFiles.map((file, idx) => (
+                      <Box 
+                        key={idx} 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          p: 1.5, 
+                          borderRadius: '12px', 
+                          bgcolor: 'rgba(99, 102, 241, 0.04)',
+                          border: '1px solid rgba(99, 102, 241, 0.15)',
+                          transition: 'all 0.2s',
+                          '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.08)' }
+                        }}
+                      >
+                        <Box className="flex items-center gap-2 overflow-hidden">
+                          <AttachFileIcon sx={{ fontSize: 18, color: siteConfig.colors.primary }} />
+                          <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
+                            {file.name}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                            {(file.size / 1024).toFixed(0)} KB
+                          </Typography>
+                        </Box>
+                        <IconButton 
+                          size="small" 
+                          onClick={(e) => { e.stopPropagation(); handleRemoveFile(idx); }}
+                          sx={{ color: '#ef4444', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.08)' } }}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
               </Box>
             </Box>
           </Paper>
@@ -484,7 +550,7 @@ const LeaveApplicationForm = () => {
           {apiError && <Alert severity="error" className="rounded-2xl shadow-sm">{apiError}</Alert>}
 
           <Box className="flex flex-col sm:flex-row justify-end gap-3 pb-20">
-            <Button onClick={() => navigate(-1)} size="large" fullWidth sx={{ py: 1.5, px: 6, borderRadius: '15px', textTransform: 'none', fontWeight: 800, color: '#64748b' }}>Cancel</Button>
+            <Button onClick={() => navigate(-1)} size="large" fullWidth  variant="contained" sx={{ py: 1.5, px: 6, borderRadius: '15px', textTransform: 'none', fontWeight: 800, background: '#f07373ff' }}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={isSubmitting} className="btn-premium" fullWidth sx={{ py: 1.5, px: 10, borderRadius: '15px', textTransform: 'none', fontWeight: 800 }}>
               {isSubmitting ? <CircularProgress size={24} color="inherit" /> : (isEditMode ? 'Save Changes' : 'Submit Application')}
             </Button>
