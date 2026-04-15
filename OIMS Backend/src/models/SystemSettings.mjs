@@ -79,6 +79,12 @@ const systemSettingsSchema = new mongoose.Schema(
       default: "ALL",
     },
 
+    // Attendance configurations
+    attendanceSettings: {
+      lateThreshold: { type: String, default: "08:30" },      // HH:mm — check-in after this = "Late"
+      standardWorkHours: { type: Number, default: 8 },       // Standard daily work hours
+    },
+
     // Configurable reminders
     leaveReminders: [
       {
