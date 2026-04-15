@@ -27,6 +27,7 @@ import CalculateIcon from '@mui/icons-material/Calculate';
 import CommuteIcon from '@mui/icons-material/Commute';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SettingsIcon from '@mui/icons-material/Settings';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { motion } from 'framer-motion';
 
 const drawerWidth = 280;
@@ -36,6 +37,7 @@ const Sidebar = ({ mobileOpen, onClose }) => {
   const location = useLocation();
   const role = user?.role;
   const isAdmin = role === 'ADMIN';
+  const isTopAdmin = role === 'TOP_ADMIN';
   const isDeptHead = role === 'DEPT_HEAD';
 
   const [pendingActingCount, setPendingActingCount] = useState(0);
@@ -57,7 +59,7 @@ const Sidebar = ({ mobileOpen, onClose }) => {
             setPendingActingCount(actingRes.data.count);
           }
           
-          if (isAdmin || isDeptHead) {
+          if (isAdmin || isTopAdmin || isDeptHead) {
             const approvalRes = await leaveApi.getPendingApproval();
             if (approvalRes.data && approvalRes.data.success) {
               setPendingApprovalCount(approvalRes.data.count);
@@ -73,7 +75,7 @@ const Sidebar = ({ mobileOpen, onClose }) => {
     // Listen for custom events to refresh counts
     window.addEventListener('refreshPendingCounts', fetchPendingCounts);
     return () => window.removeEventListener('refreshPendingCounts', fetchPendingCounts);
-  }, [user, isAdmin, isDeptHead, location.pathname]); // Re-fetch occasionally or on route change
+  }, [user, isAdmin, isTopAdmin, isDeptHead, location.pathname]); // Re-fetch occasionally or on route change
 
   const navItemStyle = (isActive) => ({
     borderRadius: '16px',
@@ -111,7 +113,7 @@ const Sidebar = ({ mobileOpen, onClose }) => {
       items: [
         { text: 'Dashboard', icon: <DashboardIcon />, path: '/', show: true },
         { text: 'My Profile', icon: <AccountCircleIcon />, path: '/my-profile', show: true },
-        { text: 'My Attendance', icon: <AccessTimeIcon />, path: '/attendance', show: true, isSoon: true },
+        { text: 'My Attendance', icon: <AccessTimeIcon />, path: '/attendance/my-details', show: true },
       ]
     },
     {
@@ -119,23 +121,24 @@ const Sidebar = ({ mobileOpen, onClose }) => {
       items: [
         { text: 'Apply Leave', icon: <EventAvailableIcon />, path: '/leaves/apply', show: true },
         { text: 'Acting Requests', icon: <AssignmentTurnedInIcon />, path: '/leaves/acting', show: true, badge: pendingActingCount },
-        { text: 'Leave Requests', icon: <ApprovalIcon />, path: '/leaves/requests', show: isAdmin || isDeptHead, badge: pendingApprovalCount },
+        { text: 'Leave Requests', icon: <ApprovalIcon />, path: '/leaves/requests', show: isAdmin || isTopAdmin || isDeptHead, badge: pendingApprovalCount },
         { text: 'My Leave Details', icon: <EventNoteIcon />, path: '/leaves/my-details', show: true, badge: myPendingCount },
-        { text: 'Branch Leave Calendar', icon: <CalendarMonthIcon />, path: '/leaves/calendar', show: true },
+        { text: `${isAdmin || isTopAdmin ? 'Employee' : 'Branch'} Leave Calendar`, icon: <CalendarMonthIcon />, path: '/leaves/calendar', show: true },
       ]
     },
     {
       title: 'OPERATIONS',
       items: [
-        { text: 'OT Calculator', icon: <CalculateIcon />, path: '/ot-calculator', show: true, isSoon: true },
+        { text: 'OT Calculator', icon: <CalculateIcon />, path: '/ot-calculator', show: true },
         { text: 'Vehicle Request', icon: <CommuteIcon />, path: '/vehicle-request', show: true, isSoon: true },
       ]
     },
     {
       title: 'ADMINISTRATION',
       items: [
-        { text: 'All Employees', icon: <PeopleIcon />, path: '/employees', show: isAdmin || isDeptHead },
+        { text: 'All Employees', icon: <PeopleIcon />, path: '/employees', show: isAdmin || isTopAdmin || isDeptHead },
         { text: 'Add Employee', icon: <PersonAddIcon />, path: '/employees/add', show: isAdmin },
+        { text: 'Add Attendance', icon: <UploadFileIcon />, path: '/admin/attendance/upload', show: isAdmin },
         { text: 'System Settings', icon: <SettingsIcon />, path: '/admin/settings', show: isAdmin },
       ]
     }
