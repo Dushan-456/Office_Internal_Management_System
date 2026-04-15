@@ -3,7 +3,7 @@ import { protect, restrictTo } from "../middleware/authMiddleware.mjs";
 import {
   getSettings,
   updateSettings,
-  syncAllBalances,
+  allocateYearlyLeaves,
   testReminders,
 } from "../controllers/settingsController.mjs";
 
@@ -16,7 +16,7 @@ router.get("/", getSettings);
 router.use(protect);
 
 router.patch("/", restrictTo("ADMIN"), updateSettings);
-router.post("/sync-balances", restrictTo("ADMIN"), syncAllBalances);
+router.post("/allocate-yearly-leaves", restrictTo("ADMIN"), allocateYearlyLeaves);
 router.post("/test-reminders", restrictTo("ADMIN"), testReminders);
 
 export default router;
