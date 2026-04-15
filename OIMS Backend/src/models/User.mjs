@@ -143,10 +143,12 @@ const userSchema = new mongoose.Schema(
     resetPasswordExpire: Date,
 
     // Leaves
-    annualLeaveBalance: {
-      type: Number,
-      default: 45,
-    },
+    leaveBalances: [
+      {
+        year: { type: Number, required: true },
+        annualBalance: { type: Number, default: 45 }
+      }
+    ],
   },
   {
     timestamps: true,
