@@ -53,12 +53,17 @@ export const updateSettings = async (req, res) => {
 };
 
 /**------------------------------------------------------------------------------------------------------------------------------------------------------------
-  * @description     Sync annual leave balance to all employees based on current global settings
-  * @route           POST /api/v1/settings/sync-balances
+  * @description     Allocate annual leave balance for a specific year to all employees based on current global settings
+  * @route           POST /api/v1/settings/allocate-yearly-leaves
   * @access          Private (Admin)
   ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-export const syncAllBalances = async (req, res) => {
+export const allocateYearlyLeaves = async (req, res) => {
   try {
+    const { year } = req.body;
+    if (!year) {
+      return res.status(400).json({ success: false, message: "Year is required" });
+    }
+
     const settings = await SystemSettings.findOne();
     if (!settings) {
       return res.status(404).json({ success: false, message: "System settings not found" });
@@ -66,16 +71,22 @@ export const syncAllBalances = async (req, res) => {
 
     const { annualLeaveBalance } = settings;
 
-    // Update all users who are not ADMIN/TOP_ADMIN (optional logic)
-    // For now, update everyone except Top Admin to be safe
+    // Update all users who are not TOP_ADMIN and don't already have this year allocated
     const result = await User.updateMany(
-      { role: { $ne: "TOP_ADMIN" } },
-      { $set: { annualLeaveBalance } }
+      { 
+        role: { $ne: "TOP_ADMIN" },
+        "leaveBalances.year": { $ne: year }
+      },
+      { 
+        $push: { 
+          leaveBalances: { year: year, annualBalance: annualLeaveBalance } 
+        } 
+      }
     );
 
     res.status(200).json({
       success: true,
-      message: `Successfully synchronized balances for ${result.modifiedCount} employees.`,
+      message: `Successfully allocated leaves for year ${year} to ${result.modifiedCount} employees.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error: error.message });
