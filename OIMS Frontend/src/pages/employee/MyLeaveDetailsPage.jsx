@@ -13,14 +13,19 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { motion } from 'framer-motion';
 import CloseIcon from '@mui/icons-material/Close';
-import { useNavigate } from 'react-router-dom';
+import PrintIcon from '@mui/icons-material/Print';
+import { useNavigate, useParams } from 'react-router-dom';
 import { leaveApi } from '../../api/leaveApi';
+import { getEmployeeById } from '../../api/employeeApi';
 import { siteConfig } from '../../config/siteConfig';
+import { printLeaveApplication } from '../../utils/printLeaveApplication';
 import useAuthStore from '../../store/useAuthStore';
 
 const MyLeaveDetailsPage = () => {
+  const { id } = useParams(); // For admin view
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [employee, setEmployee] = useState(null);
   const [error, setError] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,11 +42,24 @@ const MyLeaveDetailsPage = () => {
     fromDate: '',
     toDate: ''
   });
+  const [summaryYear, setSummaryYear] = useState(new Date().getFullYear());
 
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const res = await leaveApi.getMyLeaves();
+
+      // If id exists, fetch employee info for the title
+      if (id && !employee) {
+        const empRes = await getEmployeeById(id);
+        if (empRes.data?.success) {
+          setEmployee(empRes.data.data.employee);
+        }
+      }
+
+      const res = id 
+        ? await leaveApi.getEmployeeLeaves(id)
+        : await leaveApi.getMyLeaves();
+
       if (res.data && res.data.success) {
         setRequests(res.data.data);
       }
@@ -178,13 +196,35 @@ const MyLeaveDetailsPage = () => {
         <CircularProgress color="inherit" />
       </Backdrop>
 
-      <Box className="mb-8">
-        <Typography variant="h4" className="font-black tracking-tight mb-2" sx={{ color: 'var(--text-heading)' }}>
-          My Leave <span style={{ color: siteConfig.colors.primary }}>Details</span>
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'var(--text-muted)' }}>
-          Track the status of your leave applications. You can modify or delete requests that have not yet been processed.
-        </Typography>
+      <Box className="flex items-center justify-between mb-8">
+        <Box className="flex items-center gap-5">
+          {id && (
+          <Button 
+            variant="contained" 
+            onClick={() => navigate(`/employees/${id}`)}
+            sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800, borderColor: 'var(--glass-border)', color: 'var(--text-heading)' }}
+          >
+            Back to Profile
+          </Button>
+        )}
+        <div>
+
+          <Typography variant="h4" className="font-black tracking-tight mb-2" sx={{ color: 'var(--text-heading)' }}>
+            {id ? (
+              <>{employee?.firstName} {employee?.lastName}'s <span style={{ color: siteConfig.colors.primary }}>Leave History</span></>
+            ) : (
+              <>My Leave <span style={{ color: siteConfig.colors.primary }}>Details</span></>
+            )}
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'var(--text-muted)' }}>
+            {id 
+              ? `Comprehensive leave history and usage analytics for ${employee?.firstName} ${employee?.lastName}.`
+              : "Track the status of your leave applications. You can modify or delete requests that have not yet been processed."
+            }
+          </Typography>
+        </div>
+        </Box>
+  
       </Box>
 
       {error && <Alert severity="error" className="mb-6 rounded-xl">{error}</Alert>}
@@ -279,9 +319,9 @@ const MyLeaveDetailsPage = () => {
           <Button 
             variant="contained" 
             sx={{ mt: 3, bgcolor: siteConfig.colors.primary, borderRadius: '12px', fontWeight: 700 }}
-            onClick={() => navigate('/leaves/apply')}
+            onClick={() => navigate(id ? `/employees/${id}` : '/leaves/apply')}
           >
-            Apply for Leave
+            {id ? 'Back to Profile' : 'Apply for Leave'}
           </Button>
         </Paper>
       ) : (
@@ -423,32 +463,45 @@ const MyLeaveDetailsPage = () => {
           {/* Sticky Summary Card Sidebar - Configured like Profile Sidebar but narrower */}
           <Box className="w-full lg:w-[300px] xl:w-[340px] lg:sticky top-24 z-10 shrink-0 order-1 lg:order-2">
             <Paper className="glass-card p-6 rounded-[2.5rem] border border-slate-50 shadow-xl overflow-hidden">
-              <Box className="flex items-center gap-3 mb-6">
-                <Box className="w-1.5 h-8 rounded-full" style={{ backgroundColor: siteConfig.colors.primary }} />
-                <Box>
-                  <Typography variant="h6" className="font-black" sx={{ color: 'var(--text-heading)' }}>Usage Summary</Typography>
-                  <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">{new Date().getFullYear()} Record</Typography>
+              <Box className="flex justify-between items-start mb-6">
+                <Box className="flex items-center gap-3">
+                  <Box className="w-1.5 h-8 rounded-full" style={{ backgroundColor: siteConfig.colors.primary }} />
+                  <Box>
+                    <Typography variant="h6" className="font-black" sx={{ color: 'var(--text-heading)' }}>Usage Summary</Typography>
+                    <Typography variant="caption" className="font-bold text-slate-400 uppercase tracking-widest">{summaryYear} Record</Typography>
+                  </Box>
                 </Box>
+                <FormControl size="small" sx={{ minWidth: 80 }}>
+                  <Select
+                    value={summaryYear}
+                    onChange={(e) => setSummaryYear(e.target.value)}
+                    sx={{ borderRadius: '12px', height: '32px', fontSize: '0.8rem', fontWeight: 'bold' }}
+                  >
+                    {[...Array(5)].map((_, i) => {
+                      const year = new Date().getFullYear() - i;
+                      return <MenuItem key={year} value={year}>{year}</MenuItem>;
+                    })}
+                  </Select>
+                </FormControl>
               </Box>
 
               <Box className="mb-8 p-2 rounded-[2.5rem]  border border-indigo-100 text-center relative overflow-hidden group">
                 <Box className="absolute top-0 right-0 w-24 h-24  rounded-full -mr-10 -mt-10 blur-2xl" />
                 <Typography variant="h2" className="font-black uppercase text-indigo-400 tracking-tighter relative z-10">                 
                    {requests
-                     .filter(l => l.status === 'approved' && new Date(l.dateRange.from).getFullYear() === new Date().getFullYear())
+                     .filter(l => l.status === 'approved' && new Date(l.dateRange.from).getFullYear() === summaryYear)
                      .reduce((sum, l) => sum + (l.totalDays || 0), 0)}</Typography>
                 <Typography variant="caption" className="font-black uppercase text-indigo-400 tracking-tighter relative z-10">Approved Leaves Total</Typography>
                 <Typography variant="h5" className="font-black  relative z-10">
-                  {user?.annualLeaveBalance ?? 45} / 45
+                  {(id ? employee : user)?.leaveBalances?.find(b => b.year === summaryYear)?.annualBalance ?? 0} Remaining
                 </Typography>
               </Box>
 
               <Box className="space-y-6">
                 {(() => {
-                  const currentYear = new Date().getFullYear();
                   const approvedRequests = requests.filter(l => 
                     l.status === 'approved' && 
-                    new Date(l.dateRange.from).getFullYear() === currentYear
+                    new Date(l.dateRange.from).getFullYear() === summaryYear
                   );
                   const uniqueTypes = [...new Set(approvedRequests.map(l => l.leaveType))].sort();
                   const grandTotal = approvedRequests.reduce((sum, l) => sum + (l.totalDays || 0), 0) || 1;
@@ -489,21 +542,23 @@ const MyLeaveDetailsPage = () => {
               
               <Divider className="my-6" sx={{ borderStyle: 'dashed', opacity: 0.5 }} />
               
-              <Button 
-                fullWidth 
-                variant="contained" 
-                onClick={() => navigate('/leaves/apply')}
-                sx={{ 
-                  py: 1.8,
-                  borderRadius: '15px', 
-                  bgcolor: siteConfig.colors.primary, 
-                  fontWeight: 800, 
-                  textTransform: 'none',
-                  boxShadow: '0 8px 16px -4px rgba(99, 102, 241, 0.3)'
-                }}
-              >
-                Apply for New Leave
-              </Button>
+              {!id && (
+                <Button 
+                  fullWidth 
+                  variant="contained" 
+                  onClick={() => navigate('/leaves/apply')}
+                  sx={{ 
+                    py: 1.8,
+                    borderRadius: '15px', 
+                    bgcolor: siteConfig.colors.primary, 
+                    fontWeight: 800, 
+                    textTransform: 'none',
+                    boxShadow: '0 8px 16px -4px rgba(99, 102, 241, 0.3)'
+                  }}
+                >
+                  Apply for New Leave
+                </Button>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -530,9 +585,18 @@ const MyLeaveDetailsPage = () => {
       >
         <DialogTitle className="font-black text-2xl flex justify-between items-center">
           Overview
-          <IconButton onClick={handleCloseModal} sx={{ color: 'text.secondary' }}>
-            <CloseIcon />
-          </IconButton>
+          <Box className="flex items-center gap-1">
+            <IconButton 
+              onClick={() => printLeaveApplication(selectedRequest, id ? employee : user, siteConfig)} 
+              sx={{ color: siteConfig.colors.primary }}
+              title="Print Leave Application"
+            >
+              <PrintIcon />
+            </IconButton>
+            <IconButton onClick={handleCloseModal} sx={{ color: 'text.secondary' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </DialogTitle>
         <DialogContent>
           {selectedRequest && (
@@ -572,11 +636,13 @@ const MyLeaveDetailsPage = () => {
                 </Paper>
               </Box>
 
-              {selectedRequest.attachments && (
+              {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
                 <Box className="mt-4">
-                  <Typography variant="caption" className="font-bold text-slate-400 uppercase">Supporting Documents</Typography>
+                  <Typography variant="caption" className="font-bold text-slate-400 uppercase">Supporting Documents ({selectedRequest.attachments.length})</Typography>
                   <Box className="mt-2 flex flex-col gap-2">
+                    {selectedRequest.attachments.map((attachment, idx) => (
                     <Paper 
+                      key={idx}
                       elevation={0}
                       sx={{ 
                         p: 1.5, 
@@ -590,20 +656,21 @@ const MyLeaveDetailsPage = () => {
                         transition: '0.2s',
                         '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.1)' }
                       }}
-                      onClick={() => window.open(`${import.meta.env.VITE_ASSET_URL}${selectedRequest.attachments}`, '_blank')}
+                      onClick={() => window.open(`${import.meta.env.VITE_ASSET_URL}${attachment}`, '_blank')}
                     >
                       <Box className="flex items-center gap-2 overflow-hidden">
                         <Box sx={{ color: siteConfig.colors.primary }}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         </Box>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {selectedRequest.attachments.split('/').pop()}
+                          {attachment.split('/').pop()}
                         </Typography>
                       </Box>
                       <Typography variant="caption" sx={{ color: siteConfig.colors.primary, fontWeight: 700, whiteSpace: 'nowrap', ml: 2 }}>
                         OPEN
                       </Typography>
                     </Paper>
+                    ))}
                   </Box>
                 </Box>
               )}
@@ -727,37 +794,55 @@ const MyLeaveDetailsPage = () => {
             </Box>
           )}
         </DialogContent>
-        {selectedRequest && selectedRequest.actingOfficerStatus === 'pending' && selectedRequest.deptHeadStatus === 'pending' && (
-          <DialogActions sx={{ p: 3  }}>
-            <Box className="flex gap-2 w-full justify-between">
-              <Button 
-                variant="outlined" 
-                color="error"
-                disabled={submitting}
-                onClick={() => handleDelete(selectedRequest.id)}
-                startIcon={<DeleteIcon />}
-                sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
-              >
-                Delete
-              </Button>
-              <Button 
-                variant="contained" 
-                disabled={submitting}
-                onClick={() => { handleCloseModal(); handleEdit(selectedRequest); }}
-                startIcon={<EditIcon />}
-                sx={{ 
-                  bgcolor: siteConfig.colors.secondary,
-                  borderRadius: '12px', 
-                  textTransform: 'none', 
-                  fontWeight: 800,
-                  px: 4
-                }}
-              >
-                Edit Request
-              </Button>
+        <DialogActions sx={{ p: 3 }}>
+          <Box className="flex gap-2 w-full justify-between">
+            <Box className="flex gap-2">
+              {selectedRequest && selectedRequest.actingOfficerStatus === 'pending' && selectedRequest.deptHeadStatus === 'pending' && (
+                <>
+                  <Button 
+                    variant="outlined" 
+                    color="error"
+                    disabled={submitting}
+                    onClick={() => handleDelete(selectedRequest.id)}
+                    startIcon={<DeleteIcon />}
+                    sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
+                  >
+                    Delete
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    disabled={submitting}
+                    onClick={() => { handleCloseModal(); handleEdit(selectedRequest); }}
+                    startIcon={<EditIcon />}
+                    sx={{ 
+                      bgcolor: siteConfig.colors.secondary,
+                      borderRadius: '12px', 
+                      textTransform: 'none', 
+                      fontWeight: 800,
+                      px: 4
+                    }}
+                  >
+                    Edit Request
+                  </Button>
+                </>
+              )}
             </Box>
-          </DialogActions>
-        )}
+            <Button 
+              variant="outlined" 
+              onClick={() => printLeaveApplication(selectedRequest, id ? employee : user, siteConfig)}
+              startIcon={<PrintIcon />}
+              sx={{ 
+                borderRadius: '12px', 
+                textTransform: 'none', 
+                fontWeight: 800,
+                borderColor: siteConfig.colors.primary,
+                color: siteConfig.colors.primary,
+              }}
+            >
+              Print
+            </Button>
+          </Box>
+        </DialogActions>
       </Dialog>
 
       {/* Deletion Confirmation Dialog */}
