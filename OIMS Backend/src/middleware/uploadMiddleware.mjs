@@ -61,8 +61,8 @@ const storageLeave = multer.diskStorage({
 
 export const uploadLeaveAttachment = multer({
   storage: storageLeave,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for leaves
-}).single("attachments");
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
+}).array("attachments", 5); // Allow up to 5 supporting documents
 
 // === Export Profile Uploader ===
 export const uploadProfilePicture = multer({
