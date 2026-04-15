@@ -29,14 +29,14 @@ router.get("/directory", async (req, res) => {
   }
 });
 
-// Stats — admin only (must be before /:id to avoid conflict)
-router.get("/stats", restrictTo("ADMIN"), getStats);
+// Stats — admin and top_admin (must be before /:id to avoid conflict)
+router.get("/stats", restrictTo("ADMIN", "TOP_ADMIN"), getStats);
 
-// List — admin and dept_head
-router.get("/", restrictTo("ADMIN", "DEPT_HEAD"), getAllEmployees);
+// List — admin, top_admin and dept_head
+router.get("/", restrictTo("ADMIN", "TOP_ADMIN", "DEPT_HEAD"), getAllEmployees);
 
-// Single employee — admin and dept_head
-router.get("/:id", restrictTo("ADMIN", "DEPT_HEAD"), getEmployeeById);
+// Single employee — admin, top_admin and dept_head
+router.get("/:id", restrictTo("ADMIN", "TOP_ADMIN", "DEPT_HEAD"), getEmployeeById);
 
 // Create — admin only (with profile picture upload)
 router.post(
