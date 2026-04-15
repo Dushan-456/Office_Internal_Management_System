@@ -7,6 +7,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { attendanceApi } from '../../api/attendanceApi';
+import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import { getEmployeeById } from '../../api/employeeApi';
 import { siteConfig } from '../../config/siteConfig';
 
@@ -274,6 +275,8 @@ const MyAttendancePage = () => {
             <div className="space-y-4">
               <div className="mb-6 p-8 rounded-[2rem] border border-indigo-500/20 bg-indigo-500/5 text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full -mr-12 -mt-12 blur-2xl" />
+                <FingerprintIcon sx={{ color: siteConfig.colors.primary, fontSize: 60 }} />
+
                 <Typography variant="caption" className="font-black uppercase tracking-[0.2em] text-indigo-400 block mb-2">Total Work Hours</Typography>
                 <Typography variant="h2" className="font-black text-indigo-500 relative z-10 tracking-tighter leading-none">
                   {totalWorkHours.toFixed(1)}<span className="text-2xl ml-1 font-medium opacity-60">h</span>
