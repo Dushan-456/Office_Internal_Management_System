@@ -114,22 +114,24 @@ const LeaveCalendarPage = () => {
             <Box sx={{ 
               height: 'calc(82vh - 60px)', // Subtracting space for the header
               '& .fc': {
-                '--fc-border-color': 'var(--glass-border)',
-                '--fc-today-bg-color': `${siteConfig.colors.primary}10`,
+                '--fc-border-color': `${siteConfig.colors.primary}40`,
+                '--fc-today-bg-color': `${siteConfig.colors.primary}25`,
                 '--fc-neutral-bg-color': 'transparent',
                 fontFamily: 'inherit',
                 fontSize: '0.8rem',
                 height: '100%'
               },
               '& .fc-theme-standard td, & .fc-theme-standard th': {
-                border: '1px solid var(--glass-border) !important',
+                border: `1px solid ${siteConfig.colors.primary}30 !important`,
                 background: 'transparent !important'
               },
               '& .fc-col-header': {
                 background: 'transparent !important'
               },
               '& .fc-scrollgrid': {
-                border: 'none !important'
+                border: `1px solid ${siteConfig.colors.primary}40 !important`,
+                borderRadius: '12px',
+                overflow: 'hidden'
               },
               '& .fc-col-header-cell': {
                 pb: 1,
@@ -181,10 +183,22 @@ const LeaveCalendarPage = () => {
                 transition: 'all 0.2s',
                 '&:hover': { transform: 'scale(1.02)', zIndex: 10 }
               },
-              '& .fc-daygrid-day': {
-                borderRadius: '8px',
-                transition: 'background 0.2s',
-                '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' }
+              '& .fc-daygrid-day.fc-day-today': {
+                bgcolor: `${siteConfig.colors.primary}20 !important`,
+                border: `2px solid ${siteConfig.colors.primary} !important`,
+                borderRadius: '12px',
+                zIndex: 2,
+                '& .fc-daygrid-day-number': {
+                  bgcolor: siteConfig.colors.primary,
+                  color: '#ffffff !important',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                   display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  m: 1
+                }
               },
               '& .fc-daygrid-day-number': {
                 fontWeight: 900,
