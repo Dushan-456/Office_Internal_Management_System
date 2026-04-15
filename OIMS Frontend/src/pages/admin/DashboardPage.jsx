@@ -70,6 +70,7 @@ const DashboardPage = () => {
   const { user, fetchCurrentUser } = useAuthStore();
   const { isDarkMode } = useThemeStore();
   const isAdmin = user?.role === 'ADMIN';
+  const isTopAdmin = user?.role === 'TOP_ADMIN';
   const isDeptHead = user?.role === 'DEPT_HEAD';
 
   const ASSET_BASE = import.meta.env.VITE_ASSET_URL || import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5001';
@@ -77,7 +78,7 @@ const DashboardPage = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        if (isAdmin) {
+        if (isAdmin || isTopAdmin) {
           const res = await getEmployeeStats();
           setStats(res.data.data);
         }
@@ -87,7 +88,7 @@ const DashboardPage = () => {
           if (actingRes.data && actingRes.data.success) {
             setPendingActingCount(actingRes.data.count);
           }
-          if (isAdmin || isDeptHead) {
+          if (isAdmin || isTopAdmin || isDeptHead) {
             const appRes = await leaveApi.getPendingApproval();
             if (appRes.data && appRes.data.success) {
               setPendingApprovalCount(appRes.data.count);
@@ -120,7 +121,7 @@ const DashboardPage = () => {
     };
     fetchCurrentUser(); // Ensure latest user balance/stats are loaded
     fetchDashboardData();
-  }, [user?.id, isAdmin, isDeptHead]);
+  }, [user?.id, isAdmin, isTopAdmin, isDeptHead]);
 
   if (loading) {
     return (
@@ -252,7 +253,7 @@ const DashboardPage = () => {
               </Button>
             )}
             <Button 
-              onClick={() => navigate(isAdmin ? '/employees' : '/my-profile')}
+              onClick={() => navigate((isAdmin || isTopAdmin) ? '/employees' : '/my-profile')}
               variant="outlined" 
               sx={{ 
                 px: 4, 
@@ -265,7 +266,7 @@ const DashboardPage = () => {
                 '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
               }}
             >
-              {isAdmin ? 'System Directory' : 'My Portal'}
+              {(isAdmin || isTopAdmin) ? 'System Directory' : 'My Portal'}
             </Button>
           </Box>
         </Box>
@@ -279,7 +280,7 @@ const DashboardPage = () => {
           <Box className="flex items-center justify-between mb-6">
             <Typography variant="h5" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
               Your Leave <span style={{ color: siteConfig.colors.primary }}>Analytics</span>
-              <Typography variant="caption" className="ml-2 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-500 font-black">
+              <Typography variant="caption" className="!ml-5 px-2 py-0.5 !text-2xl rounded-lg bg-slate-100 text-slate-500 font-black">
                 {new Date().getFullYear()}
               </Typography>
             </Typography>
@@ -317,7 +318,7 @@ const DashboardPage = () => {
               },
               { 
                 label: 'Available Leaves', 
-                value: `${user?.annualLeaveBalance ?? 45} / 45`,
+                value: `${user?.leaveBalances?.find(b => b.year === new Date().getFullYear())?.annualBalance ?? 0} `,
                 color: '#6cef44ff',
                 icon: <ArrowForwardIosIcon />
               },
@@ -405,16 +406,23 @@ const DashboardPage = () => {
                 <Paper className="glass-card p-8 rounded-[2rem] border-none overflow-hidden relative w-full">
                   <Box className="absolute top-0 right-0 w-32 h-32 bg-slate-100 rounded-full -mr-16 -mt-16 opacity-50" />
                   <Box className="flex items-center justify-between mb-6 relative z-10">
-                    <Typography variant="h6" className="font-extrabold flex items-center gap-2" sx={{ color: 'var(--text-heading)', whiteSpace: 'nowrap' }}>
-                      <CalendarTodayIcon sx={{ color: siteConfig.colors.primary }} />
-                      Who's Away <span style={{ color: siteConfig.colors.primary }}>Today</span>
-                    </Typography>
+                    <Box>
+                        <Typography variant="h6" className="font-extrabold flex items-center gap-2" sx={{ color: 'var(--text-heading)', whiteSpace: 'nowrap' }}>
+                          <CalendarTodayIcon sx={{ color: siteConfig.colors.primary }} />
+                          Who's Away <span style={{ color: siteConfig.colors.primary }}>Today</span>
+                        </Typography>
+                       <Typography variant="body2" className="font-bold pl-8" sx={{ color: 'var(--text-secondary)' }}>
+                       {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                       </Typography>
+                    </Box>
+                    
                     <Chip 
-                       label={user?.department?.replace(/_/g, ' ')} 
+                       label={(isAdmin || isTopAdmin) ? "Institutional" : user?.department?.replace(/_/g, ' ')} 
                        size="small" 
                        sx={{ fontWeight: 800, borderRadius: '8px', bgcolor: 'var(--input-bg)' }} 
                     />
                   </Box>
+                 
 
                   {dashboardMessage && (
                     <Typography variant="body2" className="text-slate-400 italic text-center py-4">{dashboardMessage}</Typography>
@@ -567,7 +575,7 @@ const DashboardPage = () => {
               </div>
             </div>
             
-            {isAdmin && (
+            {(isAdmin || isTopAdmin) && (
               <>
                  <Typography variant="h5" className="font-black tracking-tight mt-8 mb-6" sx={{ color: 'var(--text-heading)' }}>
                     Workforce <span style={{ color: siteConfig.colors.primary }}>Intelligence</span>
