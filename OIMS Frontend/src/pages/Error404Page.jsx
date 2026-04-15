@@ -11,16 +11,17 @@ const Error404Page = () => {
   //  const errormsg = useRouteError();
 
   return (
-    <div className="max-w-7xl mx-auto pt-10 text-center flex flex-col items-center pb-10 justify-center">
+    <div className="max-w-7xl mx-auto pt-5 text-center flex flex-col items-center pb-5 justify-center">
       <WarningAmberIcon className="text-amber-500 !text-5xl" />
       <h1 className="text-2xl font-semibold text-amber-500">Page Not Found.</h1>
-      <p className="text-gray-600 mt-2">Sorry ! We couldn't find that page.</p>
+      <p className="my-4">Sorry ! We couldn't find that page.</p>
 
       <img src={errorimg} alt="Error 404" className="md:w-1/2" />
       <Button
         variant="outlined"
         onClick={() => navigate("/")}
         startIcon={<HomeIcon />}
+        className="!mt-4"
       >
         Go to Home
       </Button>
