@@ -31,13 +31,11 @@ export const createEmployee = async (req, res, next) => {
       data.profilePicture = `/uploads/profiles/${req.file.filename}`;
     }
 
-    // Fetch default annual balance from settings if not explicitly provided in request
-    if (data.annualLeaveBalance === undefined) {
-      const settings = await SystemSettings.findOne();
-      if (settings) {
-        data.annualLeaveBalance = settings.annualLeaveBalance;
-      }
-    }
+    // Initialize leaveBalances array with the current year
+    const currentYear = new Date().getFullYear();
+    const settings = await SystemSettings.findOne();
+    const defaultBalance = settings?.annualLeaveBalance || 45;
+    data.leaveBalances = [{ year: currentYear, annualBalance: defaultBalance }];
 
     const newUser = await User.create(data);
 
@@ -65,6 +63,9 @@ export const getAllEmployees = async (req, res, next) => {
     // DEPT_HEAD can only see their own department
     if (req.user.role === "DEPT_HEAD") {
       filter.department = req.user.department;
+    } else if (req.user.role === "ADMIN" || req.user.role === "TOP_ADMIN") {
+      // Admin and Top Admin can filter by any department if provided, otherwise see all
+      if (department) filter.department = department;
     } else if (department) {
       filter.department = department;
     }
@@ -125,6 +126,8 @@ export const getEmployeeById = async (req, res, next) => {
         message: "You can only view employees in your department.",
       });
     }
+
+    // TOP_ADMIN and ADMIN can see everyone, no restriction here.
 
     res.status(200).json({
       success: true,
@@ -241,7 +244,7 @@ export const deleteEmployee = async (req, res, next) => {
 /**------------------------------------------------------------------------------------------------------------------------------------------------------------
   * @description     Get high-level organizational statistics (Headcount, Department distribution)
   * @route           GET /api/v1/employees/stats
-  * @access          Private (Admin)
+  * @access          Private (Admin, Top Admin)
   ---------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 export const getStats = async (req, res, next) => {
   try {
