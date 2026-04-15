@@ -33,6 +33,8 @@ const LeaveCalendarPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+  const isTopAdmin = user?.role === 'TOP_ADMIN';
   const theme = useTheme();
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -66,11 +68,12 @@ const LeaveCalendarPage = () => {
   const getLeaveColor = (type) => {
     const map = {
       'Casual': '#6366f1',
-      'Medical': '#ef4444',
+      'Medical': '#f59e0b',
       'Vacation': '#22c55e',
       'Duty Leave': '#06b6d4',
-      'No Pay Leave': '#f59e0b',
-      'Maternity Leave': '#d946ef',
+      'No Pay Leave': '#f50b0bff',
+      'Lieu Leave': '#14becaff',
+      'Maternity Leave': '#f50bafff',
       'Sabbatical Leave': '#8b5cf6',
     };
     return map[type] || siteConfig.colors.secondary;
@@ -81,18 +84,19 @@ const LeaveCalendarPage = () => {
   };
 
   return (
-    <Box className="animate-in  fade-in duration-700">
+    <Box className="animate-in max-w-7xl mx-auto  fade-in duration-700">
       {/* Header Section */}
-      <Box className="mb-1">
+      <Box className="mb-4 items-center gap-5 md:flex">
         <Typography variant="h4" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
           Approved Leave <span style={{ color: siteConfig.colors.primary }}>Calendar</span>
         </Typography>
         <Typography variant="body1" className="text-slate-500 font-medium max-w-2xl">
-          {user?.role === 'ADMIN' 
+          {(isAdmin || isTopAdmin)
             ? 'Unified organizational view of approved absences and scheduled departures.' 
             : `Coordinating availability within the ${user?.department} ecosystem.`}
         </Typography>
       </Box>
+
 
       {/* Layout Container */}
       <Box className="flex flex-col md:flex-row gap-6 items-start">
@@ -239,11 +243,10 @@ const LeaveCalendarPage = () => {
                   ))}
                 </AvatarGroup>
              </Box>
-             <Typography variant="h6" className="font-black mb-1">Upcoming Away</Typography>
-             <Typography variant="caption" className="text-slate-400 font-bold uppercase tracking-widest">Next 14 Days</Typography>
+             <Typography variant="h6" className="font-black mb-1">Upcoming Approved Leaves</Typography>
              
              <List className="mt-6 space-y-3 overflow-y-auto pr-2" sx={{ 
-                maxHeight: '500px',
+                maxHeight: '410px',
                 scrollBehavior: 'smooth',
                 '&::-webkit-scrollbar': { width: '2px' },
                 '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: '10px' }
@@ -281,13 +284,13 @@ const LeaveCalendarPage = () => {
                             </Typography>
                           }
                           secondary={
-                            <Box className="mt-1">
-                              <Box className="flex items-center gap-1 text-slate-500 font-bold text-[0.65rem]">
+                            <Box >
+                              <Box className="flex items-center gap-3  font-bold text-[0.65rem]">
                                 {new Date(event.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                                 <span>→</span>
                                 {new Date(event.extendedProps.actualEnd).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                                 <span className="mx-1 opacity-20">|</span>
-                                <span style={{ color: event.backgroundColor }}>{event.extendedProps.totalDays} Days</span>
+                                <span style={{ color: siteConfig.colors.primary }}>{event.extendedProps.totalDays} Days</span>
                               </Box>
                               <Typography variant="caption" className="text-slate-400 font-bold uppercase text-[0.6rem] tracking-wider block mt-0.5">
                                 {event.extendedProps.leaveType}
@@ -313,13 +316,15 @@ const LeaveCalendarPage = () => {
              <Box className="grid grid-cols-2 gap-3">
                 {[
                   { label: 'Casual', color: '#6366f1' },
-                  { label: 'Medical', color: '#ef4444' },
+                  { label: 'Medical', color: '#f59e0b' },
                   { label: 'Vacation', color: '#22c55e' },
                   { label: 'Duty', color: '#06b6d4' },
-                  { label: 'No Pay', color: '#f59e0b' },
+                  { label: 'No Pay', color: '#f50b0bff' },
+                  { label: 'Lieu Leave', color: '#14becaff' },
+                  { label: 'Maternity Leave', color: '#f50bafff' },
                   { label: 'Special', color: '#d946ef' }
                 ].map(type => (
-                  <Box key={type.label} className="flex items-center gap-2 p-1 rounded-xl ">
+                  <Box key={type.label} className="flex items-center gap-2  rounded-xl ">
                      <Box className="w-2.5 h-2.5 rounded-full" sx={{ bgcolor: type.color }} />
                      <Typography variant="caption" className="font-extrabold uppercase text-[0.6rem] tracking-tighter">{type.label}</Typography>
                   </Box>
