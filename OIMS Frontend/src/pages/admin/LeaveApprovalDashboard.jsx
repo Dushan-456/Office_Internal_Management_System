@@ -11,8 +11,10 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CloseIcon from '@mui/icons-material/Close';
+import PrintIcon from '@mui/icons-material/Print';
 import { leaveApi } from '../../api/leaveApi';
 import { siteConfig } from '../../config/siteConfig';
+import { printLeaveApplication } from '../../utils/printLeaveApplication';
 
 const LeaveApprovalDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -419,9 +421,18 @@ const LeaveApprovalDashboard = () => {
       >
         <DialogTitle className="font-black text-2xl flex justify-between items-center">
           Final Review
-          <IconButton onClick={handleCloseModal} sx={{ color: 'text.secondary' }}>
-            <CloseIcon />
-          </IconButton>
+          <Box className="flex items-center gap-1">
+            <IconButton 
+              onClick={() => printLeaveApplication(selectedRequest, selectedRequest?.applicantId || {}, siteConfig)} 
+              sx={{ color: siteConfig.colors.primary }}
+              title="Print Leave Application"
+            >
+              <PrintIcon />
+            </IconButton>
+            <IconButton onClick={handleCloseModal} sx={{ color: 'text.secondary' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </DialogTitle>
         <DialogContent>
           {selectedRequest && (
@@ -509,11 +520,13 @@ const LeaveApprovalDashboard = () => {
                 </Paper>
               </Box>
 
-              {selectedRequest.attachments && (
+              {selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
                 <Box className="mt-4">
-                  <Typography variant="caption" className="font-bold text-slate-400 uppercase">Supporting Documents</Typography>
-                  <Box className="mt-2">
+                  <Typography variant="caption" className="font-bold text-slate-400 uppercase">Supporting Documents ({selectedRequest.attachments.length})</Typography>
+                  <Box className="mt-2 flex flex-col gap-2">
+                    {selectedRequest.attachments.map((attachment, idx) => (
                     <Paper 
+                      key={idx}
                       elevation={0}
                       sx={{ 
                         p: 1.5, 
@@ -527,20 +540,21 @@ const LeaveApprovalDashboard = () => {
                         transition: '0.2s',
                         '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.1)' }
                       }}
-                      onClick={() => window.open(`${import.meta.env.VITE_ASSET_URL}${selectedRequest.attachments}`, '_blank')}
+                      onClick={() => window.open(`${import.meta.env.VITE_ASSET_URL}${attachment}`, '_blank')}
                     >
                       <Box className="flex items-center gap-2 overflow-hidden">
                         <Box sx={{ color: siteConfig.colors.primary }}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         </Box>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {selectedRequest.attachments.split('/').pop()}
+                          {attachment.split('/').pop()}
                         </Typography>
                       </Box>
                       <Typography variant="caption" sx={{ color: siteConfig.colors.primary, fontWeight: 700, whiteSpace: 'nowrap', ml: 2 }}>
                         OPEN
                       </Typography>
                     </Paper>
+                    ))}
                   </Box>
                 </Box>
               )}
@@ -607,44 +621,61 @@ const LeaveApprovalDashboard = () => {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          {selectedRequest?.status === 'pending_approval' ? (
-            <Box className="flex gap-2 w-full justify-between">
-              <Button 
-                variant="outlined" 
-                color="error"
-                disabled={submitting}
-                onClick={() => setRejectionDialogOpen(true)}
-                startIcon={<CancelIcon />}
-                sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
-              >
-                Reject Leave
-              </Button>
-              <Button 
-                variant="contained" 
-                disabled={submitting}
-                onClick={() => handleDecision(selectedRequest.id, 'approved')}
-                startIcon={<CheckCircleIcon />}
-                sx={{ 
-                  bgcolor: siteConfig.colors.primary,
-                  borderRadius: '12px', 
-                  textTransform: 'none', 
-                  fontWeight: 800,
-                  px: 4
-                }}
-              >
-                 Approve Leave
-              </Button>
+          <Box className="flex gap-2 w-full justify-between">
+            <Box className="flex gap-2">
+              {selectedRequest?.status === 'pending_approval' ? (
+                <>
+                  <Button 
+                    variant="outlined" 
+                    color="error"
+                    disabled={submitting}
+                    onClick={() => setRejectionDialogOpen(true)}
+                    startIcon={<CancelIcon />}
+                    sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
+                  >
+                    Reject Leave
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    disabled={submitting}
+                    onClick={() => handleDecision(selectedRequest.id, 'approved')}
+                    startIcon={<CheckCircleIcon />}
+                    sx={{ 
+                      bgcolor: siteConfig.colors.primary,
+                      borderRadius: '12px', 
+                      textTransform: 'none', 
+                      fontWeight: 800,
+                      px: 4
+                    }}
+                  >
+                    Approve Leave
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCloseModal}
+                  sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800, py: 1.5 }}
+                >
+                  Close
+                </Button>
+              )}
             </Box>
-          ) : (
             <Button 
-              fullWidth 
               variant="outlined" 
-              onClick={handleCloseModal}
-              sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800, py: 1.5 }}
+              onClick={() => printLeaveApplication(selectedRequest, selectedRequest?.applicantId || {}, siteConfig)}
+              startIcon={<PrintIcon />}
+              sx={{ 
+                borderRadius: '12px', 
+                textTransform: 'none', 
+                fontWeight: 800,
+                borderColor: siteConfig.colors.primary,
+                color: siteConfig.colors.primary,
+              }}
             >
-              Close
+              Print
             </Button>
-          )}
+          </Box>
         </DialogActions>
       </Dialog>
 
