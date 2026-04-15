@@ -8,10 +8,10 @@ import { CONTACT_ADMIN_EMAIL } from "../utils/Values";
 const Error403Page = () => {
   const navigate = useNavigate();
   return (
-    <div className="max-w-7xl mx-auto pt-10 text-center flex flex-col items-center h-screen pb-10 justify-center">
+    <div className="max-w-7xl mx-auto pt-10 text-center flex flex-col items-center  pb-10 justify-center">
       <WarningAmberIcon className="text-red-600 !text-5xl" />
       <h1 className="text-2xl font-semibold text-red-600">Access Denied</h1>
-      <p className="text-gray-600 mt-2">
+      <p className=" my-4">
         You do not have permission to view this page.
       </p>
       <img src={errorimage} alt="Error 403" />
@@ -19,6 +19,7 @@ const Error403Page = () => {
         variant="outlined"
         onClick={() => navigate("/")}
         startIcon={<HomeIcon />}
+        className="!mt-4"
       >
         Go to Home
       </Button>
