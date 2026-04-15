@@ -79,7 +79,9 @@ export const applyLeave = async (req, res) => {
       totalDays = 0.5; // override for half day if needed
     }
 
-    const attachments = req.file ? `/uploads/leaves/${req.file.filename}` : null;
+    const attachments = req.files && req.files.length > 0 
+      ? req.files.map(f => `/uploads/leaves/${f.filename}`) 
+      : [];
 
     // Validate balance before creating the request
     const applicant = await User.findById(applicantId);
@@ -87,10 +89,14 @@ export const applyLeave = async (req, res) => {
       return res.status(404).json({ success: false, message: "Applicant profile not found." });
     }
 
-    if (applicant.annualLeaveBalance < totalDays) {
+    const leaveYear = new Date(fromDate).getFullYear();
+    const balanceRecord = applicant.leaveBalances?.find(b => b.year === leaveYear);
+    const availableBalance = balanceRecord ? balanceRecord.annualBalance : 0;
+
+    if (availableBalance < totalDays) {
       return res.status(400).json({ 
         success: false, 
-        message: `Insufficient leave balance. Requested: ${totalDays}, Available: ${applicant.annualLeaveBalance}.` 
+        message: `Insufficient leave balance for year ${leaveYear}. Requested: ${totalDays}, Available: ${availableBalance}.` 
       });
     }
 
@@ -399,7 +405,11 @@ export const finalDecision = async (req, res) => {
     // Deduct leave balance if approved
     if (status === "approved") {
       const applicantUser = await User.findById(applicant._id);
-      if (!applicantUser || applicantUser.annualLeaveBalance < leaveRequest.totalDays) {
+      const leaveYear = new Date(leaveRequest.dateRange.from).getFullYear();
+      const balanceRecord = applicantUser?.leaveBalances?.find(b => b.year === leaveYear);
+      const availableBalance = balanceRecord ? balanceRecord.annualBalance : 0;
+
+      if (!applicantUser || availableBalance < leaveRequest.totalDays) {
         // Revert status if balance is suddenly insufficient
         leaveRequest.status = "pending_approval";
         leaveRequest.deptHeadStatus = "pending";
@@ -407,11 +417,11 @@ export const finalDecision = async (req, res) => {
         
         return res.status(400).json({ 
           success: false, 
-          message: `Approval failed. Applicant has insufficient leave balance (${applicantUser?.annualLeaveBalance || 0} days available).` 
+          message: `Approval failed. Applicant has insufficient leave balance (${availableBalance} days available).` 
         });
       }
       
-      applicantUser.annualLeaveBalance -= leaveRequest.totalDays;
+      balanceRecord.annualBalance -= leaveRequest.totalDays;
       await applicantUser.save();
     }
 
@@ -574,10 +584,14 @@ export const updateLeaveRequest = async (req, res) => {
 
     // Validate balance if the total days are changing or it's a new check
     const applicant = await User.findById(req.user.id);
-    if (applicant.annualLeaveBalance < totalDays) {
+    const leaveYear = new Date(fromDate).getFullYear();
+    const balanceRecord = applicant.leaveBalances?.find(b => b.year === leaveYear);
+    const availableBalance = balanceRecord ? balanceRecord.annualBalance : 0;
+
+    if (availableBalance < totalDays) {
        return res.status(400).json({ 
          success: false, 
-         message: `Insufficient leave balance for this update. Requested: ${totalDays}, Available: ${applicant.annualLeaveBalance}.` 
+         message: `Insufficient leave balance for this update year ${leaveYear}. Requested: ${totalDays}, Available: ${availableBalance}.` 
        });
     }
 
@@ -592,8 +606,9 @@ export const updateLeaveRequest = async (req, res) => {
       approveOfficerId,
     };
 
-    if (req.file) {
-      updates.attachments = `/uploads/leaves/${req.file.filename}`;
+    if (req.files && req.files.length > 0) {
+      const newAttachments = req.files.map(f => `/uploads/leaves/${f.filename}`);
+      updates.attachments = newAttachments;
     }
 
     const updatedRequest = await LeaveRequest.findByIdAndUpdate(
@@ -713,13 +728,17 @@ export const getMyPendingCount = async (req, res) => {
 export const getAllLeaveRequests = async (req, res) => {
   try {
     const filter = {};
-    if (req.user.role === "DEPT_HEAD") {
-      // If dept head, only see requests assigned to them AND already approved by acting officer
+    if (req.user.role === "ADMIN" || req.user.role === "TOP_ADMIN" || req.user.role === "DEPT_HEAD") {
+      // These roles only see requests where they are the designated Approve Officer
       filter.approveOfficerId = req.user.id;
+      // Usually, approvers only act after the Acting Officer has approved
+      // But we show 'all' history for themselves, so we might not want to enforce acting status here
+      // if they want to see what's coming their way. 
+      // However, for consistency with the previous logic:
       filter.actingOfficerStatus = "approved";
     }
     const requests = await LeaveRequest.find(filter)
-      .populate("applicantId", "firstName lastName department profilePicture")
+      .populate("applicantId", "firstName lastName department profilePicture employeeNo epfNo mobileNo jobTitle")
       .populate("actingOfficerId", "firstName lastName")
       .sort({ createdAt: -1 });
     
@@ -743,6 +762,7 @@ export const getEmployeeLeaveHistory = async (req, res) => {
     if (req.user.role === "DEPT_HEAD") {
       filter.actingOfficerStatus = "approved";
     }
+    // TOP_ADMIN and ADMIN see the full history including pending_acting
 
     // Fetch leaves for the targeted employee
     const requests = await LeaveRequest.find(filter)
@@ -766,8 +786,8 @@ export const getCalendarData = async (req, res) => {
   try {
     const filter = { status: "approved" };
 
-    // If not ADMIN, filter by current user's department
-    if (req.user.role !== "ADMIN") {
+    // If not ADMIN or TOP_ADMIN, filter by current user's department
+    if (req.user.role !== "ADMIN" && req.user.role !== "TOP_ADMIN") {
       const departmentUsers = await User.find({ department: req.user.department }).select("_id");
       const userIds = departmentUsers.map(u => u._id);
       filter.applicantId = { $in: userIds };
@@ -835,12 +855,17 @@ export const getDashboardLeaves = async (req, res) => {
     next14Days.setDate(today.getDate() + 15);
     const next14Str = next14Days.toISOString().split('T')[0];
 
-    // Filter by department
-    const userDept = req.user.department;
-
-    // Find all approved leaves in this department
-    const departmentUsers = await User.find({ department: userDept }).select("_id");
-    const userIds = departmentUsers.map(u => u._id);
+    // Filter by department (Skip for ADMIN and TOP_ADMIN)
+    let userIds;
+    if (req.user.role === "ADMIN" || req.user.role === "TOP_ADMIN") {
+      // Global visibility
+      const allUsers = await User.find({}).select("_id");
+      userIds = allUsers.map(u => u._id);
+    } else {
+      const userDept = req.user.department;
+      const departmentUsers = await User.find({ department: userDept }).select("_id");
+      userIds = departmentUsers.map(u => u._id);
+    }
 
     // Fetch leaves that overlap with [today, today + 14]
     const leaves = await LeaveRequest.find({
