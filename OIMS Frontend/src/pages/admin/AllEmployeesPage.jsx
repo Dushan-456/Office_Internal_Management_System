@@ -15,6 +15,9 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import WorkHistoryIcon from '@mui/icons-material/WorkHistory';
+import Tooltip from '@mui/material/Tooltip';
 import useAuthStore from '../../store/useAuthStore';
 import { motion } from 'framer-motion';
 
@@ -22,6 +25,7 @@ const AllEmployeesPage = () => {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const isAdmin = currentUser?.role === 'ADMIN';
+  const isTopAdmin = currentUser?.role === 'TOP_ADMIN';
   const isDeptHead = currentUser?.role === 'DEPT_HEAD';
 
   const [employees, setEmployees] = useState([]);
@@ -78,7 +82,7 @@ const AllEmployeesPage = () => {
     <Box sx={{ px: { xs: 1, md: 0 } }}>
       <Box className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <Typography variant="h4" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
-          {isDeptHead ? `${currentUser.department?.replace(/_/g, ' ')} ` : 'All '}
+          {isDeptHead ? `${currentUser.department?.replace(/_/g, ' ')} ` : (isAdmin || isTopAdmin ? 'Institutional ' : 'All ')}
           <span style={{ color: siteConfig.colors.primary }}>Employees</span>
         </Typography>
         {isAdmin && (
@@ -109,7 +113,7 @@ const AllEmployeesPage = () => {
             }
           }}
         />
-        {isAdmin && (
+        {(isAdmin || isTopAdmin) && (
           <TextField 
             select
             label="Filter by Department"
@@ -192,12 +196,32 @@ const AllEmployeesPage = () => {
                   </TableCell>
                   <TableCell align="right" sx={{ pr: 3 }}>
                     <Box className="flex justify-end gap-1">
-                      <IconButton 
-                        onClick={(e) => { e.stopPropagation(); navigate(`/employees/${emp.id}`); }} 
-                        sx={{ color: siteConfig.colors.primary }}
-                      >
-                        <VisibilityOutlinedIcon fontSize="small" />
-                      </IconButton>
+                      <Tooltip title="View Profile">
+                        <IconButton 
+                          onClick={(e) => { e.stopPropagation(); navigate(`/employees/${emp.id}`); }} 
+                          sx={{ color: siteConfig.colors.primary }}
+                        >
+                          <VisibilityOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="View Attendance">
+                        <IconButton 
+                          onClick={(e) => { e.stopPropagation(); navigate(`/employees/${emp.id}/attendance`); }} 
+                          sx={{ color: siteConfig.colors.primary }}
+                        >
+                          <EventNoteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="Leave History">
+                        <IconButton 
+                          onClick={(e) => { e.stopPropagation(); navigate(`/employees/${emp.id}/leaves`); }} 
+                          sx={{ color: siteConfig.colors.primary }}
+                        >
+                          <WorkHistoryIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       {isAdmin && (
                         <>
                           <IconButton 
