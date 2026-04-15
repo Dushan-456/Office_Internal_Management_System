@@ -92,8 +92,8 @@ const leaveRequestSchema = new mongoose.Schema(
       default: "pending",
     },
     attachments: {
-      type: String, // Store URL/Path here
-      default: null,
+      type: [String], // Store multiple URLs/Paths here
+      default: [],
     },
     rejectionReason: {
       type: String,
