@@ -40,6 +40,7 @@ const SystemSettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [settings, setSettings] = useState(null);
+  const [allocationYear, setAllocationYear] = useState(new Date().getFullYear());
   const [newLeaveType, setNewLeaveType] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [newDept, setNewDept] = useState('');
@@ -80,16 +81,16 @@ const SystemSettingsPage = () => {
     }
   };
 
-  const handleSyncBalances = async () => {
-    if (!window.confirm('This will update the annual leave balance for ALL employees to match the current global setting. Proceed?')) return;
+  const handleAllocateLeaves = async () => {
+    if (!window.confirm(`This will allocate ${settings.annualLeaveBalance} annual leaves for year ${allocationYear} to ALL employees. Existing allocations for this year will not be overwritten. Proceed?`)) return;
     try {
       setSyncing(true);
-      const res = await api.post('/settings/sync-balances');
+      const res = await api.post('/settings/allocate-yearly-leaves', { year: allocationYear });
       if (res.data.success) {
         setMessage({ open: true, text: res.data.message, severity: 'success' });
       }
     } catch (err) {
-      setMessage({ open: true, text: 'Failed to synchronize balances', severity: 'error' });
+      setMessage({ open: true, text: 'Failed to allocate leaves', severity: 'error' });
     } finally {
       setSyncing(false);
     }
@@ -245,33 +246,45 @@ const SystemSettingsPage = () => {
             <Box className="space-y-6">
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1rem', mb: 2, display: 'block' }}>
-                  ANNUAL LEAVE ALLOWANCE
+                  ANNUAL LEAVE ALLOWANCE (DEFAULT)
+                </Typography>
+                <TextField
+                  type="number"
+                  value={settings.annualLeaveBalance}
+                  onChange={(e) => setSettings({ ...settings, annualLeaveBalance: parseInt(e.target.value) })}
+                  fullWidth
+                  slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)', fontWeight: 800 } } }}
+                  sx={{ mb: 4 }}
+                />
+                
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1rem', mb: 2, display: 'block' }}>
+                  ALLOCATE YEARLY LEAVES TO ALL EMPLOYEES
                 </Typography>
                 <Box className="flex items-center gap-4">
                   <TextField
                     type="number"
-                    value={settings.annualLeaveBalance}
-                    onChange={(e) => setSettings({ ...settings, annualLeaveBalance: parseInt(e.target.value) })}
+                    value={allocationYear}
+                    onChange={(e) => setAllocationYear(parseInt(e.target.value))}
                     fullWidth
                     slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)', fontWeight: 800 } } }}
                   />
                   <Button
                     variant="outlined"
-                    startIcon={syncing ? <CircularProgress size={16} /> : <SyncIcon />}
-                    onClick={handleSyncBalances}
+                    startIcon={syncing ? <CircularProgress size={16} /> : <AddIcon />}
+                    onClick={handleAllocateLeaves}
                     disabled={syncing}
-                    sx={{ borderRadius: '15px', textTransform: 'none', height: '56px', border: '2px solid', px: 3, fontWeight: 700 }}
+                    sx={{ borderRadius: '15px', textTransform: 'none', height: '56px', border: '2px solid', px: 3, fontWeight: 700, minWidth: '170px' }}
                   >
-                    Sync All
+                    Allocate Leaves
                   </Button>
                 </Box>
                 <Typography variant="caption" sx={{ color: siteConfig.colors.primary, mt: 1, display: 'block', fontWeight: 700 }}>
-                  * Use "Sync All" to update existing employees.
+                  * Use this at the start of every year to grant new leaves to everyone without overwriting existing entries.
                 </Typography>
               </Box>
 
               <Box>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1rem', mb: 2, display: 'block' }}>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1rem',  display: 'block' }}>
                   GRACE PERIOD (DAYS)
                 </Typography>
                 <TextField
@@ -281,8 +294,52 @@ const SystemSettingsPage = () => {
                   fullWidth
                   slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)', fontWeight: 800 } } }}
                   helperText="Allowed days to apply for leave after the start date."
+                  
                 />
               </Box>
+
+              <Divider sx={{ opacity: 0.6, mb: 1 }} />
+
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1rem',  display: 'block' }}>
+                  ATTENDANCE: LATE THRESHOLD (HH:mm)
+                </Typography>
+                <TextField
+                  type="time"
+                  value={settings.attendanceSettings?.lateThreshold || '08:30'}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    attendanceSettings: { 
+                      ...(settings.attendanceSettings || {}), 
+                      lateThreshold: e.target.value 
+                    } 
+                  })}
+                  fullWidth
+                  slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)', fontWeight: 800 } } }}
+                  helperText="Employees checking in after this time will be marked as 'Late'."
+                  sx={{ mb: 1 }}
+                />
+
+                <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1rem', mb: 2, display: 'block' }}>
+                  ATTENDANCE: STANDARD WORK HOURS
+                </Typography>
+                <TextField
+                  type="number"
+                  value={settings.attendanceSettings?.standardWorkHours || 8}
+                  onChange={(e) => setSettings({ 
+                    ...settings, 
+                    attendanceSettings: { 
+                      ...(settings.attendanceSettings || {}), 
+                      standardWorkHours: parseFloat(e.target.value) 
+                    } 
+                  })}
+                  fullWidth
+                  slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)', fontWeight: 800 } } }}
+                  helperText="Expected working hours per day for analytics."
+                />
+              </Box>
+
+              <Divider sx={{ opacity: 0.6, mb: 1 }} />
 
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1rem', mb: 2, display: 'block' }}>
