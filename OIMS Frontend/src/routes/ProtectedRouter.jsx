@@ -20,10 +20,11 @@ const ProtectedRouter = ({ ProtectedRole, children }) => {
   }
 
   // If a specific role is required, check it (ADMIN always has access)
-  if (ProtectedRole && user.role !== "ADMIN" && user.role !== ProtectedRole) {
-    return (
-      <Error403Page />
-    );
+  if (ProtectedRole) {
+    const roles = Array.isArray(ProtectedRole) ? ProtectedRole : [ProtectedRole];
+    if (user.role !== "ADMIN" && !roles.includes(user.role)) {
+      return <Error403Page />;
+    }
   }
 
   return children ? children : <Outlet />;
