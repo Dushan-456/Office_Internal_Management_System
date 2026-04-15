@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  db:
+    image: mongo:latest
+    container_name: oims-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - oims-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./OIMS Backend
+      dockerfile: Dockerfile
+    container_name: oims-backend
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - MONGO_URI=mongodb://db:27017/oims
+      - FRONTEND_URL=http://localhost
+      - NODE_ENV=production
+      # Add other secrets here (JWT_SECRET, etc.)
+    depends_on:
+      - db
+    networks:
+      - oims-network
+
+  # Frontend Web UI
+  frontend:
+    build:
+      context: ./OIMS Frontend
+      dockerfile: Dockerfile
+    container_name: oims-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - oims-network
+
+networks:
+  oims-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
