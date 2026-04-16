@@ -11,11 +11,14 @@ import {
   CircularProgress,
   Alert,
   InputAdornment,
+  IconButton,
   Avatar
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import KeyIcon from '@mui/icons-material/Key';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { motion } from 'framer-motion';
 
 const LoginPage = () => {
@@ -23,6 +26,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [localErr, setLocalErr] = useState('');
 
   if (isAuthenticated) {
@@ -113,7 +117,7 @@ const LoginPage = () => {
 
             <TextField
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               variant="outlined"
               fullWidth
               value={password}
@@ -124,6 +128,19 @@ const LoginPage = () => {
                   startAdornment: (
                     <InputAdornment position="start">
                       <KeyIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                        sx={{ color: '#94a3b8' }}
+                      >
+                        {showPassword ? <VisibilityOff size={20} /> : <Visibility size={20} />}
+                      </IconButton>
                     </InputAdornment>
                   ),
                   sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' }
