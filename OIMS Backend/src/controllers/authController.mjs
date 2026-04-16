@@ -30,6 +30,14 @@ export const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Incorrect email or password' });
     }
 
+    // Check if account is active
+    if (user.status === 'Inactive') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Your account is currently inactive. Please contact the institutional administrator for access restoration.' 
+      });
+    }
+
     const token = signToken(user._id);
 
     // Send token as Bearer and also in body
@@ -45,6 +53,7 @@ export const login = async (req, res, next) => {
           lastName: user.lastName,
           department: user.department,
           profilePicture: user.profilePicture,
+          mustChangePassword: user.mustChangePassword,
         }
       }
     });
@@ -77,6 +86,7 @@ export const updatePassword = async (req, res, next) => {
 
     // 3) Update password (will be hashed by pre-save middleware)
     user.password = newPassword;
+    user.mustChangePassword = false;
     await user.save();
 
     res.status(200).json({
@@ -173,6 +183,7 @@ export const resetPassword = async (req, res, next) => {
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
+    user.mustChangePassword = false;
     await user.save();
 
     // 3) Log the user in, send JWT
@@ -191,6 +202,7 @@ export const resetPassword = async (req, res, next) => {
           lastName: user.lastName,
           department: user.department,
           profilePicture: user.profilePicture,
+          mustChangePassword: user.mustChangePassword,
         }
       }
     });
