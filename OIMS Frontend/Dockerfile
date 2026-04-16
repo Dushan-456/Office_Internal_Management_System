@@ -13,8 +13,15 @@ RUN npm install
 # Copy application code
 COPY . .
 
+# Set build arguments for Vite
+ARG VITE_API_URL
+ARG VITE_ASSET_URL
+
+# Set environment variables for the build process
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_ASSET_URL=$VITE_ASSET_URL
+
 # Build the application
-# Note: Ensure the build script uses the correct environment variables (e.g., VITE_API_BASE_URL)
 RUN npm run build
 
 # --- STAGE 2: Serve ---
