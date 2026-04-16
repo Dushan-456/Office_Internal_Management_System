@@ -21,13 +21,14 @@ services:
     container_name: oims-backend
     restart: always
     ports:
-      - "5001:5001"
+      - "5000:5000"
+    env_file:
+      - ./OIMS Backend/.env
     environment:
-      - PORT=5001
-      - MONGO_URI=mongodb://db:27017/oims
+      - PORT=5000
+      - MONGO_URI=mongodb://db:27017/office_management
       - FRONTEND_URL=http://localhost
       - NODE_ENV=production
-      # Add other secrets here (JWT_SECRET, etc.)
     depends_on:
       - db
     networks:
@@ -38,6 +39,9 @@ services:
     build:
       context: ./OIMS Frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:5000/api/v1
+        - VITE_ASSET_URL=http://localhost:5000
     container_name: oims-frontend
     restart: always
     ports:
