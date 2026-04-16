@@ -51,16 +51,21 @@ const LeaveApplicationForm = () => {
   const watchCategory = watch('category');
 
   // Auto calculate total days excluding weekends
-  const calculateTotalDays = (from, to) => {
-    if (!from || !to) return 0;
-    if (new Date(to) < new Date(from)) return 0;
+  const calculateTotalDays = (fromStr, toStr) => {
+    if (!fromStr || !toStr) return 0;
+    
+    // Split and parse locally to avoid timezone truncation jumps
+    const [fy, fm, fd] = fromStr.split('-').map(Number);
+    const [ty, tm, td] = toStr.split('-').map(Number);
+    
+    // Notice: month is 0-indexed in JS dates
+    const curDate = new Date(fy, fm - 1, fd);
+    const endDate = new Date(ty, tm - 1, td);
+    
+    if (isNaN(curDate) || isNaN(endDate)) return 0;
+    if (endDate < curDate) return 0;
 
     let count = 0;
-    const curDate = new Date(from);
-    const endDate = new Date(to);
-    curDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-
     while (curDate <= endDate) {
       const dayOfWeek = curDate.getDay();
       if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0=Sun, 6=Sat
