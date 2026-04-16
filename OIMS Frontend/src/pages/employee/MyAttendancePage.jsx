@@ -225,6 +225,7 @@ const MyAttendancePage = () => {
                     <TableCell className="font-bold">Check Out</TableCell>
                     <TableCell className="font-bold" sx={{ display: { xs: 'none', md: 'table-cell' }, textAlign: 'center' }}>Work Hrs</TableCell>
                     <TableCell className="font-bold" sx={{ display: { xs: 'none', md: 'table-cell' }, textAlign: 'center' }}>Status</TableCell>
+                    <TableCell className="font-bold" sx={{ textAlign: 'center' }}>Leave</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -260,6 +261,19 @@ const MyAttendancePage = () => {
                       </TableCell>
                       <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, textAlign: 'center' }}>
                         <StatusChip status={row.status} />
+                      </TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>
+                        {row.isOnLeave ? (
+                          <Chip 
+                            label={`On approved leave (${row.leaveType || 'Approved'})`} 
+                            color="info" 
+                            variant="outlined" 
+                            size="small" 
+                            sx={{ fontWeight: 'bold', borderRadius: '12px' }} 
+                          />
+                        ) : (
+                          <Typography variant="body2" className="text-slate-300">--</Typography>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
