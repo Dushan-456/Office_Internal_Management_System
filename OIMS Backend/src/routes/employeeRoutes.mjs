@@ -10,7 +10,9 @@ import {
   updateEmployee,
   deleteEmployee,
   getStats,
+  bulkUploadEmployees,
 } from "../controllers/employeeController.mjs";
+import { uploadCSV } from "../middleware/uploadMiddleware.mjs";
 
 const router = Router();
 
@@ -34,6 +36,14 @@ router.get("/stats", restrictTo("ADMIN", "TOP_ADMIN"), getStats);
 
 // List — admin, top_admin and dept_head
 router.get("/", restrictTo("ADMIN", "TOP_ADMIN", "DEPT_HEAD"), getAllEmployees);
+
+// Bulk Upload — admin only
+router.post(
+  "/bulk-upload",
+  restrictTo("ADMIN"),
+  uploadCSV,
+  bulkUploadEmployees
+);
 
 // Single employee — admin, top_admin and dept_head
 router.get("/:id", restrictTo("ADMIN", "TOP_ADMIN", "DEPT_HEAD"), getEmployeeById);
