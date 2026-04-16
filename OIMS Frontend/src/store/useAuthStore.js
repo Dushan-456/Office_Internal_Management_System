@@ -19,6 +19,7 @@ const useAuthStore = create((set) => ({
         user: data.user,
         isAuthenticated: true,
         isLoading: false,
+        mustChangePassword: data.user.mustChangePassword,
       });
       return true;
     } catch (error) {
@@ -48,6 +49,7 @@ const useAuthStore = create((set) => ({
         user: response.data.data.user,
         isAuthenticated: true,
         isLoading: false,
+        mustChangePassword: response.data.data.user.mustChangePassword,
       });
     } catch (error) {
       localStorage.removeItem('token');
