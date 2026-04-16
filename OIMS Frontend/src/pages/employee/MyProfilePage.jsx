@@ -216,16 +216,27 @@ const MyProfilePage = () => {
                   mb: 1
                 }} 
               />
-             <Chip 
-               label={emp.department?.replace(/_/g, ' ')} 
-               sx={{ 
-                 bgcolor: `${siteConfig.colors.primary}10`, 
-                 color: siteConfig.colors.primary, 
-                 fontWeight: 800,
-                 borderRadius: '10px',
-                 mb: 2
-               }} 
-                            />
+              <Chip 
+                label={emp.department?.replace(/_/g, ' ')} 
+                sx={{ 
+                  bgcolor: `${siteConfig.colors.primary}10`, 
+                  color: siteConfig.colors.primary, 
+                  fontWeight: 800,
+                  borderRadius: '10px',
+                  mb: 1
+                }} 
+              />
+              <Chip 
+                label={emp.status || 'Active'} 
+                sx={{ 
+                  bgcolor: emp.status === 'Inactive' ? '#fef2f2' : '#f0fdf4',
+                  color: emp.status === 'Inactive' ? '#ef4444' : '#16a34a',
+                  fontWeight: 800,
+                  borderRadius: '10px',
+                  border: `1px solid ${emp.status === 'Inactive' ? '#fecaca' : '#bbf7d0'}`,
+                  mb: 2
+                }} 
+              />
 
               <Divider sx={{ mb: 1, opacity: 0.5 }} />
 
