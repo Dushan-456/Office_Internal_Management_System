@@ -14,7 +14,7 @@ RUN npm install --omit=dev
 COPY . .
 
 # Expose the backend port
-EXPOSE 5001
+EXPOSE 5000
 
 # Set production environment
 ENV NODE_ENV=production
