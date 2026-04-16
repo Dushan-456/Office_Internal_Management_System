@@ -3,6 +3,7 @@ import User from "../models/User.mjs";
 import SystemSettings from "../models/SystemSettings.mjs";
 import csv from "csv-parser";
 import { Readable } from "stream";
+import LeaveRequest from "../models/LeaveRequest.mjs";
 
 /**------------------------------------------------------------------------------------------------------------------------------------------------------------
   * @description     Get current user's attendance records for a specific month and year
@@ -28,9 +29,36 @@ export const getMyAttendance = async (req, res) => {
       date: { $gte: startDate, $lt: endDate }
     }).sort({ date: -1 });
 
+    // Fetch approved leaves for this user in this month
+    const approvedLeaves = await LeaveRequest.find({
+      applicantId: userId,
+      status: "approved",
+      $or: [
+        { "dateRange.from": { $gte: startDate, $lt: endDate } },
+        { "dateRange.to": { $gte: startDate, $lt: endDate } },
+        { "dateRange.from": { $lt: startDate }, "dateRange.to": { $gte: endDate } }
+      ]
+    });
+
+    // Map leave status to records
+    const recordsWithLeave = records.map(record => {
+      const recordDate = new Date(record.date).setHours(0, 0, 0, 0);
+      const leave = approvedLeaves.find(l => {
+        const from = new Date(l.dateRange.from).setHours(0, 0, 0, 0);
+        const to = new Date(l.dateRange.to).setHours(0, 0, 0, 0);
+        return recordDate >= from && recordDate <= to;
+      });
+
+      return {
+        ...record.toObject(),
+        isOnLeave: !!leave,
+        leaveType: leave ? leave.leaveType : null
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: records
+      data: recordsWithLeave
     });
   } catch (error) {
     console.error("Get My Attendance Error:", error);
@@ -240,12 +268,14 @@ export const uploadAttendanceCSV = async (req, res) => {
       });
     }
 
-    // 10. Fill absent days for working days with no punches
+    // 10. Fill absent days for all days with no punches (up to the max day found in CSV)
     // Determine the month range from the CSV data
     const allDates = Object.values(punchGroups).map(g => new Date(g.dateKey));
     const csvYear = allDates[0].getFullYear();
     const csvMonth = allDates[0].getMonth(); // 0-indexed
-    const daysInMonth = new Date(csvYear, csvMonth + 1, 0).getDate();
+    
+    // Determine the furthest day present in the CSV to avoid marking future days of the month as absent
+    const maxDay = Math.max(...allDates.map(d => d.getDate()));
 
     let absentDaysCreated = 0;
 
@@ -257,14 +287,12 @@ export const uploadAttendanceCSV = async (req, res) => {
           .map(g => g.dateKey)
       );
 
-      // Check each working day in the month
-      for (let day = 1; day <= daysInMonth; day++) {
-        const d = new Date(csvYear, csvMonth, day);
-        const dayOfWeek = d.getDay(); // 0=Sun, 1=Mon, ...
+      // Check each day up to the maxDay found in the CSV
+      for (let day = 1; day <= maxDay; day++) {
         const dateStr = `${csvYear}-${String(csvMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-        // Skip if not a working day or if already has a punch
-        if (!workWeek.includes(dayOfWeek) || punchedDates.has(dateStr)) continue;
+        // Skip if this person already has a punch for this day
+        if (punchedDates.has(dateStr)) continue;
 
         attendanceRecords.push({
           fingerPrintId: fpId,
@@ -341,9 +369,36 @@ export const getEmployeeAttendance = async (req, res) => {
       date: { $gte: startDate, $lt: endDate }
     }).sort({ date: -1 });
 
+    // Fetch approved leaves for this user in this month
+    const approvedLeaves = await LeaveRequest.find({
+      applicantId: userId,
+      status: "approved",
+      $or: [
+        { "dateRange.from": { $gte: startDate, $lt: endDate } },
+        { "dateRange.to": { $gte: startDate, $lt: endDate } },
+        { "dateRange.from": { $lt: startDate }, "dateRange.to": { $gte: endDate } }
+      ]
+    });
+
+    // Map leave status to records
+    const recordsWithLeave = records.map(record => {
+      const recordDate = new Date(record.date).setHours(0, 0, 0, 0);
+      const leave = approvedLeaves.find(l => {
+        const from = new Date(l.dateRange.from).setHours(0, 0, 0, 0);
+        const to = new Date(l.dateRange.to).setHours(0, 0, 0, 0);
+        return recordDate >= from && recordDate <= to;
+      });
+
+      return {
+        ...record.toObject(),
+        isOnLeave: !!leave,
+        leaveType: leave ? leave.leaveType : null
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: records
+      data: recordsWithLeave
     });
   } catch (error) {
     console.error("Get Employee Attendance Error:", error);
