@@ -41,6 +41,7 @@ const EditEmployeePage = () => {
     nationality: '', address: '', district: '', mobileNo: '',
     dateJoined: '', employeeType: '', department: '', jobCategory: '', jobTitle: '', grade: 'NA',
     qualifications: [],
+    status: 'Active',
   });
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
@@ -83,6 +84,7 @@ const EditEmployeePage = () => {
           jobTitle: emp.jobTitle || '',
           grade: emp.grade || 'NA',
           qualifications: Array.isArray(emp.qualifications) ? emp.qualifications : [],
+          status: emp.status || 'Active',
         });
 
         if (emp.profilePicture) {
@@ -225,6 +227,10 @@ const EditEmployeePage = () => {
               <TextField name="password" label="New Password (optional)" type="password" placeholder="Leave blank to keep current" value={formData.password} onChange={handleChange} fullWidth slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }} />
               <TextField name="role" label="Access Role" value={formData.role} onChange={handleChange} fullWidth select slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }}>
                 {enums.roles.map((r) => <MenuItem key={r} value={r}>{roleLabels[r] || formatLabel(r)}</MenuItem>)}
+              </TextField>
+              <TextField name="status" label="Account Status" value={formData.status} onChange={handleChange} fullWidth select slotProps={{ input: { sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' } } }}>
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
               </TextField>
             </Box>
           </Paper>
