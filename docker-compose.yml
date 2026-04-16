@@ -26,7 +26,7 @@ services:
       - ./OIMS Backend/.env
     environment:
       - PORT=5000
-      - MONGO_URI=mongodb://db:27017/office_management
+      - MONGODB_URI=mongodb://db:27017/office_management
       - FRONTEND_URL=http://localhost
       - NODE_ENV=production
     depends_on:
