@@ -16,6 +16,14 @@ export const createEmployee = (formData) => {
   });
 };
 
+export const bulkUploadEmployees = (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post("/employees/bulk-upload", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
 export const updateEmployee = (id, formData) => {
   return api.put(`/employees/${id}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
