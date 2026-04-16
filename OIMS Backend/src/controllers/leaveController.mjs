@@ -144,7 +144,9 @@ export const applyLeave = async (req, res) => {
       const html = getLeaveApplicationConfirmationTemplate(
         req.user.firstName,
         actingOfficer ? `${actingOfficer.firstName} ${actingOfficer.lastName}` : "Acting Officer",
-        statusUrl
+        statusUrl,
+        fromDate,
+        toDate
       );
       await emailService.sendHtmlEmail(
         req.user.email,
@@ -238,11 +240,13 @@ export const approveActing = async (req, res) => {
         const html = getActingOfficerApprovalApplicantTemplate(
           applicant.firstName,
           `Acting Officer (${actingOfficer ? actingOfficer.firstName : 'Assigned Member'})`,
-          statusUrl
+          statusUrl,
+          leaveRequest.dateRange.from,
+          leaveRequest.dateRange.to
         );
         emailService.sendHtmlEmail(
           applicant.email,
-          "Leave Application Approved",
+          "Leave Application Approved by Acting Officer",
           html
         ).catch(console.error);
       }
@@ -251,11 +255,13 @@ export const approveActing = async (req, res) => {
       if (emailToggles.actingOfficer && actingOfficer && actingOfficer.email) {
         const actingHtml = getActingOfficerApprovalConfirmationTemplate(
           actingOfficer.firstName,
-          `${applicant.firstName} ${applicant.lastName}`
+          `${applicant.firstName} ${applicant.lastName}`,
+          leaveRequest.dateRange.from,
+          leaveRequest.dateRange.to
         );
         emailService.sendHtmlEmail(
           actingOfficer.email,
-          "Leave Approval Confirmed",
+          "Acting Officer Approval Confirmed",
           actingHtml
         ).catch(console.error);
       }
@@ -272,11 +278,13 @@ export const approveActing = async (req, res) => {
          const html = getActingOfficerRejectionApplicantTemplate(
            applicant.firstName,
            `Acting Officer (${actingOfficer ? actingOfficer.firstName : 'Assigned Member'})`,
-           statusUrl
+           statusUrl,
+           leaveRequest.dateRange.from,
+           leaveRequest.dateRange.to
          );
          emailService.sendHtmlEmail(
            applicant.email,
-           "Leave Application Rejected",
+           "Leave Application Rejected by Acting Officer",
            html
          ).catch(console.error);
       }
@@ -285,11 +293,13 @@ export const approveActing = async (req, res) => {
       if (emailToggles.actingOfficer && actingOfficer && actingOfficer.email) {
         const actingHtml = getActingOfficerRejectionConfirmationTemplate(
           actingOfficer.firstName,
-          `${applicant.firstName} ${applicant.lastName}`
+          `${applicant.firstName} ${applicant.lastName}`,
+          leaveRequest.dateRange.from,
+          leaveRequest.dateRange.to
         );
         emailService.sendHtmlEmail(
           actingOfficer.email,
-          "Leave Rejection Confirmed",
+          "Acting Officer Rejection Confirmed",
           actingHtml
         ).catch(console.error);
       }
@@ -439,6 +449,8 @@ export const finalDecision = async (req, res) => {
           applicant.firstName,
           status,
           statusUrl,
+          leaveRequest.dateRange.from,
+          leaveRequest.dateRange.to,
           "Department Head",
           leaveRequest.rejectionReason
         );
@@ -452,6 +464,8 @@ export const finalDecision = async (req, res) => {
         actingOfficer.firstName,
         applicantName,
         status,
+        leaveRequest.dateRange.from,
+        leaveRequest.dateRange.to,
         leaveRequest.rejectionReason
       );
       emailService.sendHtmlEmail(actingOfficer.email, "Leave Decision Finalized", actingHtml).catch(console.error);
@@ -464,6 +478,8 @@ export const finalDecision = async (req, res) => {
         deptHead.firstName,
         applicantName,
         status,
+        leaveRequest.dateRange.from,
+        leaveRequest.dateRange.to,
         leaveRequest.rejectionReason
       );
       emailService.sendHtmlEmail(deptHead.email, "Action Confirmed: Leave Decision", dhHtml).catch(console.error);
@@ -693,6 +709,7 @@ export const getPendingApprovalRequests = async (req, res) => {
     const requests = await LeaveRequest.find({ approveOfficerId: req.user.id, status: "pending_approval" })
       .populate("applicantId", "firstName lastName department profilePicture")
       .populate("actingOfficerId", "firstName lastName")
+      .populate("approveOfficerId", "firstName lastName")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, count: requests.length, data: requests });
@@ -740,6 +757,7 @@ export const getAllLeaveRequests = async (req, res) => {
     const requests = await LeaveRequest.find(filter)
       .populate("applicantId", "firstName lastName department profilePicture employeeNo epfNo mobileNo jobTitle")
       .populate("actingOfficerId", "firstName lastName")
+      .populate("approveOfficerId", "firstName lastName")
       .sort({ createdAt: -1 });
     
     res.status(200).json({ success: true, data: requests });
