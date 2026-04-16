@@ -59,6 +59,12 @@ const storageLeave = multer.diskStorage({
   },
 });
 
+// CSV Memory Storage for parsing
+export const uploadCSV = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit for CSV
+}).single("file");
+
 export const uploadLeaveAttachment = multer({
   storage: storageLeave,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
