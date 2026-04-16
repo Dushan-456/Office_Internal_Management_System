@@ -19,6 +19,16 @@ const ProtectedRouter = ({ ProtectedRole, children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Mandatory Password Change Redirection
+  if (user.mustChangePassword && location.pathname !== "/change-password-mandatory") {
+    return <Navigate to="/change-password-mandatory" replace />;
+  }
+
+  // If already on the mandatory page but NOT flagged, redirect back to root
+  if (!user.mustChangePassword && location.pathname === "/change-password-mandatory") {
+    return <Navigate to="/" replace />;
+  }
+
   // If a specific role is required, check it (ADMIN always has access)
   if (ProtectedRole) {
     const roles = Array.isArray(ProtectedRole) ? ProtectedRole : [ProtectedRole];
