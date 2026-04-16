@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEmployeeById, deleteEmployee, adminResetPassword } from '../../api/employeeApi';
+import api from '../../api/axiosClient';
+import { leaveApi } from '../../api/leaveApi';
+import { attendanceApi } from '../../api/attendanceApi';
 import { siteConfig } from '../../config/siteConfig';
 import {
   Box, Typography, Paper, CircularProgress, Avatar, Chip, IconButton,
   Button, Grid, Alert, Dialog, DialogTitle, DialogContent, DialogActions,
-  Stack
+  Stack, FormControl, Select, MenuItem, Divider
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -71,8 +74,51 @@ const EmployeeProfilePage = () => {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [delOpen, setDelOpen] = useState(false);
+  const [delStep, setDelStep] = useState(1);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+
+  // --- Analytics State ---
+  const currentYear = new Date().getFullYear();
+  const [leaveSummaryYear, setLeaveSummaryYear] = useState(currentYear);
+  const [attendanceYear, setAttendanceYear] = useState(currentYear);
+  // Default to 1 for analytics. You could use current month, but normally it's 1 for overall year view, wait, attendance is fetched per month
+  const [attendanceMonth, setAttendanceMonth] = useState(new Date().getMonth() + 1);
+
+  const [leaveRecords, setLeaveRecords] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+
+  // Fetch Leaves
+  useEffect(() => {
+    if (id) {
+      leaveApi.getEmployeeLeaves(id)
+        .then(res => { if (res.data?.success) setLeaveRecords(res.data.data); })
+        .catch(console.error);
+    }
+  }, [id]);
+
+  // Fetch Attendance
+  useEffect(() => {
+    if (id) {
+      attendanceApi.getEmployeeAttendance(id, attendanceYear, attendanceMonth)
+        .then(res => { if (res.data?.success) setAttendanceRecords(res.data.data); })
+        .catch(console.error);
+    }
+  }, [id, attendanceYear, attendanceMonth]);
+
+  // Attendance Calculations
+  const totalWorkHours = attendanceRecords.reduce((sum, r) => sum + (r.workHours || 0), 0);
+  const getAvgTime = (dateArray, key) => {
+    const validDates = dateArray.filter(r => r[key]).map(r => new Date(r[key]));
+    if (validDates.length === 0) return '--:--';
+    const totalMinutes = validDates.reduce((sum, d) => sum + d.getHours() * 60 + d.getMinutes(), 0);
+    const avgMinutes = Math.floor(totalMinutes / validDates.length);
+    const hours = Math.floor(avgMinutes / 60);
+    const mins = avgMinutes % 60;
+    return new Date(0, 0, 0, hours, mins).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+  const avgCheckIn = getAvgTime(attendanceRecords, 'checkIn');
+  const avgCheckOut = getAvgTime(attendanceRecords, 'checkOut');
 
   const ASSET_BASE = import.meta.env.VITE_ASSET_URL || 'http://localhost:5000';
 
@@ -221,6 +267,10 @@ const EmployeeProfilePage = () => {
                 }} 
               />
 
+         
+
+
+
               <Chip 
                 label={emp.department?.replace(/_/g, ' ')} 
                 sx={{ 
@@ -228,6 +278,18 @@ const EmployeeProfilePage = () => {
                   color: siteConfig.colors.primary, 
                   fontWeight: 800,
                   borderRadius: '10px',
+                  mb: 1
+                }} 
+              />
+
+              <Chip 
+                label={emp.status || 'Active'} 
+                sx={{ 
+                  bgcolor: emp.status === 'Inactive' ? '#fef2f2' : '#f0fdf4',
+                  color: emp.status === 'Inactive' ? '#ef4444' : '#16a34a',
+                  fontWeight: 800,
+                  borderRadius: '10px',
+                  border: `1px solid ${emp.status === 'Inactive' ? '#fecaca' : '#bbf7d0'}`
                 }} 
               />
 
@@ -460,13 +522,119 @@ const EmployeeProfilePage = () => {
               </Box>
             </Paper>
           </motion.div>
+
+          {/* Leave Analytics */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }}>
+            <Paper className="glass-card p-8 rounded-[3rem]">
+              <Box className="flex justify-between items-center mb-6">
+                <SectionHeader icon={<EventNoteIcon />} title="Leave Analytics" />
+                <FormControl size="small" sx={{ minWidth: 100 }}>
+                  <Select value={leaveSummaryYear} onChange={(e) => setLeaveSummaryYear(e.target.value)} sx={{ borderRadius: '12px', height: '36px', fontWeight: 'bold' }}>
+                    {[...Array(5)].map((_, i) => {
+                      const year = currentYear - i;
+                      return <MenuItem key={year} value={year}>{year}</MenuItem>;
+                    })}
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box className="mb-6 p-4 rounded-[2.5rem] border border-indigo-100/50 bg-indigo-500/5 text-center relative overflow-hidden">
+                <Typography variant="h3" className="font-black uppercase text-indigo-500 tracking-tighter">
+                  {leaveRecords.filter(l => l.status === 'approved' && new Date(l.dateRange.from).getFullYear() === leaveSummaryYear).reduce((sum, l) => sum + (l.totalDays || 0), 0)}
+                </Typography>
+                <Typography variant="caption" className="font-bold text-slate-500 uppercase tracking-widest">Approved Leaves Total</Typography>
+                <Typography variant="body2" className="font-black mt-2">
+                  {emp.leaveBalances?.find(b => b.year === leaveSummaryYear)?.annualBalance ?? 0} Remaining
+                </Typography>
+              </Box>
+              <Box className="space-y-4">
+                {(() => {
+                  const approvedRequests = leaveRecords.filter(l => l.status === 'approved' && new Date(l.dateRange.from).getFullYear() === leaveSummaryYear);
+                  const uniqueTypes = [...new Set(approvedRequests.map(l => l.leaveType))].sort();
+                  const grandTotal = approvedRequests.reduce((sum, l) => sum + (l.totalDays || 0), 0) || 1;
+                  if (uniqueTypes.length === 0) return <Typography variant="caption" className="text-slate-400 italic px-2">No approved records yet.</Typography>;
+
+                  return uniqueTypes.map(type => {
+                    const days = approvedRequests.filter(l => l.leaveType === type).reduce((sum, l) => sum + (l.totalDays || 0), 0);
+                    const percentage = Math.round((days / grandTotal) * 100);
+                    const typeColors = { Annual: '#6366f1', Medical: '#10b981', Casual: '#f59e0b', Short: '#ec4899' };
+                    const color = typeColors[type] || siteConfig.colors.primary;
+                    return (
+                      <Box key={type} className="p-2">
+                        <Box className="flex justify-between items-center mb-1.5">
+                          <Box className="flex items-center gap-2">
+                            <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                            <Typography variant="caption" className="font-bold">{type}</Typography>
+                          </Box>
+                          <Typography variant="caption" className="font-black">{days} Days</Typography>
+                        </Box>
+                        <Box className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 1 }} className="h-full rounded-full" style={{ backgroundColor: color }} />
+                        </Box>
+                      </Box>
+                    );
+                  });
+                })()}
+              </Box>
+            </Paper>
+          </motion.div>
+
+          {/* Attendance Analytics */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }}>
+            <Paper className="glass-card p-8 rounded-[3rem]">
+              <Box className="flex justify-between flex-wrap gap-4 items-center mb-6">
+                <SectionHeader icon={<FingerprintIcon />} title="Attendance Analytics" />
+                <Box className="flex gap-2">
+                  <FormControl size="small" sx={{ minWidth: 90 }}>
+                    <Select value={attendanceYear} onChange={(e) => setAttendanceYear(e.target.value)} sx={{ borderRadius: '12px', height: '36px', fontWeight: 'bold' }}>
+                      {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(y => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <Select value={attendanceMonth} onChange={(e) => setAttendanceMonth(e.target.value)} sx={{ borderRadius: '12px', height: '36px', fontWeight: 'bold' }}>
+                      {[...Array(12)].map((_, i) => <MenuItem key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('en-US', { month: 'short' })}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+              
+              <div className="mb-6 p-6 rounded-[2rem] border border-indigo-500/10 bg-indigo-500/5 text-center relative overflow-hidden">
+                <Typography variant="caption" className="font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Total Work Hours</Typography>
+                <Typography variant="h3" className="font-black text-indigo-500 relative z-10 tracking-tighter">
+                  {totalWorkHours.toFixed(1)}<span className="text-xl ml-1 font-medium opacity-60">h</span>
+                </Typography>
+                <Typography variant="caption" className="block mt-2 text-slate-400 font-bold">Calculated for {new Date(0, attendanceMonth - 1).toLocaleString('en-US', { month: 'long' })} {attendanceYear}</Typography>
+              </div>
+
+              <div className="p-5 rounded-[2rem] border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="text-left">
+                    <Typography variant="caption" className="font-black text-slate-400 uppercase tracking-widest block mb-0.5">Avg Check In</Typography>
+                    <Typography variant="h6" className="font-black">{avgCheckIn}</Typography>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  </div>
+                </div>
+                <Divider className="mb-4 opacity-30" />
+                <div className="flex justify-between items-center">
+                  <div className="text-left">
+                    <Typography variant="caption" className="font-black text-slate-400 uppercase tracking-widest block mb-0.5">Avg Check Out</Typography>
+                    <Typography variant="h6" className="font-black">{avgCheckOut}</Typography>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                  </div>
+                </div>
+              </div>
+            </Paper>
+          </motion.div>
         </Box>
       </Box>
 
       {/* Delete Dialog */}
       <Dialog 
         open={delOpen} 
-        onClose={() => setDelOpen(false)} 
+        onClose={() => { setDelOpen(false); setTimeout(() => setDelStep(1), 300); }} 
         slotProps={{ 
           backdrop: { 
             sx: { 
@@ -485,22 +653,47 @@ const EmployeeProfilePage = () => {
           } 
         }}
       >
-        <DialogTitle className="font-black text-2xl" sx={{ color: '#ef4444' }}>Delete Employee</DialogTitle>
+        <DialogTitle className="font-black text-2xl" sx={{ color: '#ef4444' }}>
+          {delStep === 1 ? 'Delete Employee' : delStep === 2 ? 'Critical Warning' : 'Final Confirmation'}
+        </DialogTitle>
         <DialogContent>
-          <Typography className=" font-medium">
-            Permanently Delete <strong>{emp.firstName} {emp.lastName}</strong> from the institutional directory? This action is irreversible.
-          </Typography>
+          {delStep === 1 && (
+            <Typography className="font-medium">
+              Permanently Delete <strong>{emp.firstName} {emp.lastName}</strong> from the institutional directory? This action is irreversible.
+            </Typography>
+          )}
+          {delStep === 2 && (
+            <Box>
+              <Typography className="font-bold text-rose-500 mb-2">WARNING: EXTREME DATA LOSS</Typography>
+              <Typography className="font-medium text-slate-500 mb-2">By proceeding, you will completely obliterate the following associated records for <strong>{emp.firstName} {emp.lastName}</strong>:</Typography>
+              <ul className="list-disc pl-5 text-sm font-medium text-slate-600 space-y-1">
+                <li>All historical attendance and timesheets</li>
+                <li>Comprehensive leave balances and requests</li>
+                <li>System access credentials and tokens</li>
+                <li>Performance and operational audit logs</li>
+              </ul>
+            </Box>
+          )}
+          {delStep === 3 && (
+            <Typography className="font-medium text-slate-700">
+              This is the final barrier. The deletion of <strong>{emp.firstName} {emp.lastName}</strong> from the institutional directory is absolute and irreversible. Proceed with execution?
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions sx={{ p: 4 }}>
-          <Button onClick={() => setDelOpen(false)} sx={{ fontWeight: 800, color: '#64748b' }}>Cancel</Button>
-          <Button 
-            variant="contained" 
-            color="error" 
-            onClick={async () => { await deleteEmployee(id); navigate('/employees'); }}
-            sx={{ borderRadius: '15px', fontWeight: 800, bgcolor: '#ef4444' }}
-          >
-            Confirm Delete
-          </Button>
+          <Button onClick={() => { setDelOpen(false); setTimeout(() => setDelStep(1), 300); }} sx={{ fontWeight: 800, color: '#64748b' }}>Cancel</Button>
+          {delStep < 3 ? (
+            <Button onClick={() => setDelStep(s => s + 1)} variant="contained" color="warning" sx={{ borderRadius: '15px', fontWeight: 800 }}>Understand & Continue</Button>
+          ) : (
+            <Button 
+              variant="contained" 
+              color="error" 
+              onClick={async () => { await deleteEmployee(id); navigate('/employees'); }}
+              sx={{ borderRadius: '15px', fontWeight: 800, bgcolor: '#ef4444' }}
+            >
+              Confirm Final Deletion
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
