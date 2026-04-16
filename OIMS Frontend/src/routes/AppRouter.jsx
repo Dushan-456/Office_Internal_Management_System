@@ -13,6 +13,7 @@ import MyProfilePage from "../pages/employee/MyProfilePage";
 import EditEmployeePage from "../pages/admin/EditEmployeePage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/ResetPasswordPage";
+import MandatoryPasswordChangePage from "../pages/MandatoryPasswordChangePage";
 
 // Leave Pages
 import LeaveApplicationForm from "../pages/employee/LeaveApplicationForm";
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
         children: [
           // --- Global Dashboard ---
           { index: true, element: <DashboardPage /> },
+          { path: "change-password-mandatory", element: <MandatoryPasswordChangePage /> },
 
           // --- Admin Only Area ---
           {
