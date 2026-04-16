@@ -36,7 +36,7 @@ const AllEmployeesPage = () => {
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState(isDeptHead ? currentUser.department : '');
   const [enums, setEnums] = useState(null);
-  const [delDialog, setDelDialog] = useState({ open: false, id: null, name: '' });
+  const [delDialog, setDelDialog] = useState({ open: false, step: 1, id: null, name: '' });
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
   const SERVER_BASE = API_BASE.replace('/api/v1', '');
@@ -79,7 +79,7 @@ const AllEmployeesPage = () => {
   };
 
   return (
-    <Box sx={{ px: { xs: 1, md: 0 } }}>
+    <Box className="max-w-7xl mx-auto" sx={{ px: { xs: 1, md: 0 } }}>
       <Box className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <Typography variant="h4" className="font-black tracking-tight" sx={{ color: 'var(--text-heading)' }}>
           {isDeptHead ? `${currentUser.department?.replace(/_/g, ' ')} ` : (isAdmin || isTopAdmin ? 'Institutional ' : 'All ')}
@@ -138,12 +138,13 @@ const AllEmployeesPage = () => {
                 <TableCell sx={{ fontWeight: 800,  py: 3 }}>Identity</TableCell>
                 <TableCell sx={{ fontWeight: 800,  display: { xs: 'none', md: 'table-cell' } }}>Department</TableCell>
                 <TableCell sx={{ fontWeight: 800,  display: { xs: 'none', md: 'table-cell' } }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 800,  display: { xs: 'none', md: 'table-cell' } }}>Status</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 800, pr: 4 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={4} align="center" sx={{ py: 10 }}><CircularProgress /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} align="center" sx={{ py: 10 }}><CircularProgress /></TableCell></TableRow>
               ) : employees.map((emp) => (
                 <TableRow 
                   key={emp.id} 
@@ -194,6 +195,19 @@ const AllEmployeesPage = () => {
                       }}
                     />
                   </TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Chip 
+                      label={emp.status || 'Active'} 
+                      size="small"
+                      sx={{ 
+                        fontWeight: 800, 
+                        fontSize: '0.6rem', 
+                        bgcolor: emp.status === 'Inactive' ? '#fef2f2' : '#f0fdf4',
+                        color: emp.status === 'Inactive' ? '#ef4444' : '#16a34a',
+                        border: `1px solid ${emp.status === 'Inactive' ? '#fecaca' : '#bbf7d0'}`
+                      }}
+                    />
+                  </TableCell>
                   <TableCell align="right" sx={{ pr: 3 }}>
                     <Box className="flex justify-end gap-1">
                       <Tooltip title="View Profile">
@@ -231,7 +245,7 @@ const AllEmployeesPage = () => {
                             <EditOutlinedIcon fontSize="small" />
                           </IconButton>
                           <IconButton 
-                            onClick={(e) => { e.stopPropagation(); setDelDialog({ open: true, id: emp.id, name: emp.firstName }); }} 
+                            onClick={(e) => { e.stopPropagation(); setDelDialog({ open: true, step: 1, id: emp.id, name: emp.firstName }); }} 
                             sx={{ color: '#ef4444' }}
                           >
                             <DeleteOutlineIcon fontSize="small" />
@@ -258,7 +272,7 @@ const AllEmployeesPage = () => {
       {/* Delete Confirmation */}
       <Dialog 
         open={delDialog.open} 
-        onClose={() => setDelDialog({ open: false })} 
+        onClose={() => setDelDialog({ ...delDialog, open: false, step: 1 })} 
         slotProps={{ 
           backdrop: { 
             sx: { 
@@ -276,11 +290,38 @@ const AllEmployeesPage = () => {
           } 
         }}
       >
-        <DialogTitle className="font-black" sx={{ color: 'var(--text-heading)' }}>Confirm Deletion</DialogTitle>
-        <DialogContent>Permanently remove <strong>{delDialog.name}</strong> from the institutional directory?</DialogContent>
+        <DialogTitle className="font-black" sx={{ color: 'var(--text-heading)' }}>
+          {delDialog.step === 1 ? 'Confirm Deletion' : delDialog.step === 2 ? 'Critical Warning' : 'Final Confirmation'}
+        </DialogTitle>
+        <DialogContent>
+          {delDialog.step === 1 && (
+            <Typography>Permanently remove <strong>{delDialog.name}</strong> from the institutional directory?</Typography>
+          )}
+          {delDialog.step === 2 && (
+            <Box>
+              <Typography className="font-bold text-rose-500 mb-2">WARNING: EXTREME DATA LOSS</Typography>
+              <Typography className="font-medium text-slate-500 mb-2">By proceeding, you will completely obliterate the following associated records for <strong>{delDialog.name}</strong>:</Typography>
+              <ul className="list-disc pl-5 text-sm font-medium  space-y-1">
+                <li>All historical attendance and timesheets</li>
+                <li>Comprehensive leave balances and requests</li>
+                <li>System access credentials and tokens</li>
+                <li>Performance and operational audit logs</li>
+              </ul>
+            </Box>
+          )}
+          {delDialog.step === 3 && (
+            <Typography className="font-medium ">
+              This is the final barrier. The deletion of <strong>{delDialog.name}</strong> from the institutional directory is absolute and irreversible. Proceed with execution?
+            </Typography>
+          )}
+        </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setDelDialog({ open: false })} sx={{ textTransform: 'none', fontWeight: 800, color: '#64748b' }}>Cancel</Button>
-          <Button onClick={confirmDelete} variant="contained" sx={{ bgcolor: '#ef4444', transition: 'all 0.2s', '&:hover': { bgcolor: '#dc2626' }, borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}>Execute Delete</Button>
+          <Button onClick={() => setDelDialog({ ...delDialog, open: false, step: 1 })} sx={{ textTransform: 'none', fontWeight: 800, color: '#64748b' }}>Cancel</Button>
+          {delDialog.step < 3 ? (
+            <Button onClick={() => setDelDialog({ ...delDialog, step: delDialog.step + 1 })} variant="contained" color="warning" sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}>Understand & Continue</Button>
+          ) : (
+            <Button onClick={confirmDelete} variant="contained" sx={{ bgcolor: '#ef4444', transition: 'all 0.2s', '&:hover': { bgcolor: '#dc2626' }, borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}>Execute Final Deletion</Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
