@@ -12,6 +12,7 @@ import { createServer } from "http";
 import connectDB from "./src/config/db.mjs";
 import { initIO } from "./src/utils/socket.mjs";
 import reminderEngine from "./src/services/reminderEngine.mjs";
+import { autoSeed } from "./src/utils/autoSeed.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,9 @@ server.use(errorHandler);
 // Connect to MongoDB and start the server
 const startServer = async () => {
   await connectDB();
+  
+  // Auto-seed default admin and settings
+  await autoSeed();
   
   const httpServer = createServer(server);
   
