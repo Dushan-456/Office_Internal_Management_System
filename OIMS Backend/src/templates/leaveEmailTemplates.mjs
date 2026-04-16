@@ -37,16 +37,19 @@ const getBaseEmailTemplate = (title, content) => {
   `;
 };
 
-export const getLeaveRequestActingTemplate = (actingOfficerName, applicantName, actingUrl, fromDate, toDate) => {
-  const formattedFrom = new Date(fromDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-  const formattedTo = new Date(toDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+const formatRange = (from, to) => {
+  const f = new Date(from).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  const t = new Date(to).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `<strong>${f}</strong> to <strong>${t}</strong>`;
+};
 
+export const getLeaveRequestActingTemplate = (actingOfficerName, applicantName, actingUrl, fromDate, toDate) => {
   return getBaseEmailTemplate(
     "Action Required: Leave Approval",
     `
       <h2>Action Required</h2>
       <p>Dear ${actingOfficerName},</p>
-      <p><strong>${applicantName}</strong> has nominated you as their Acting Officer for their upcoming leave period from <strong>${formattedFrom}</strong> to <strong>${formattedTo}</strong>.</p>
+      <p><strong>${applicantName}</strong> has nominated you as their Acting Officer for their upcoming leave period from ${formatRange(fromDate, toDate)}.</p>
       <p>Please log in to the portal to review and Approve the request.</p>
       <div style="text-align: center; margin-top: 30px;">
         <a href="${actingUrl}" style="background-color: ${siteConfig.colors.primary}; color: white; padding: 12px 25px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block;">Review Acting Request</a>
@@ -55,13 +58,13 @@ export const getLeaveRequestActingTemplate = (actingOfficerName, applicantName, 
   );
 };
 
-export const getLeaveApplicationConfirmationTemplate = (userName, actingOfficerName, statusUrl) => {
+export const getLeaveApplicationConfirmationTemplate = (userName, actingOfficerName, statusUrl, fromDate, toDate) => {
   return getBaseEmailTemplate(
     "Leave Application Submitted",
     `
       <h2>Application Received</h2>
       <p>Dear ${userName},</p>
-      <p>Your leave application has been successfully submitted and forwarded to <strong>${actingOfficerName}</strong> for initial approval.</p>
+      <p>Your leave application for the period ${formatRange(fromDate, toDate)} has been successfully submitted and forwarded to <strong>${actingOfficerName}</strong> for initial approval.</p>
       <p>Please wait for the acting officer to Approve your request, after which it will be sent to the Department Head for final approval.</p>
       <div style="text-align: center; margin-top: 30px;">
         <a href="${statusUrl}" style="background-color: ${siteConfig.colors.primary}; color: white; padding: 12px 25px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block;">Check Status</a>
@@ -89,13 +92,13 @@ export const getLeaveNotifyDeptHeadTemplate = (deptHeadName, applicantName, appr
 };
 
 
-export const getActingOfficerRejectionApplicantTemplate = (userName, actingOfficerName, statusUrl) => {
+export const getActingOfficerRejectionApplicantTemplate = (userName, actingOfficerName, statusUrl, fromDate, toDate) => {
   return getBaseEmailTemplate(
     "Leave Application Rejected",
     `
       <h2>Application Rejected</h2>
       <p>Dear ${userName},</p>
-      <p>Your recent leave request has been <span style="color: red; font-weight: bold;">Rejected</span> by your Acting Officer, <strong>${actingOfficerName}</strong>.</p>
+      <p>Your recent leave request for the period ${formatRange(fromDate, toDate)} has been <span style="color: red; font-weight: bold;">Rejected</span> by your Acting Officer, <strong>${actingOfficerName}</strong>.</p>
       <p>This request will not proceed to the Department Head.</p>
       <div style="text-align: center; margin-top: 30px;">
         <a href="${statusUrl}" style="background-color: ${siteConfig.colors.accent}; color: white; padding: 12px 25px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block;">View Leave History</a>
@@ -104,25 +107,25 @@ export const getActingOfficerRejectionApplicantTemplate = (userName, actingOffic
   );
 };
 
-export const getActingOfficerRejectionConfirmationTemplate = (actingOfficerName, applicantName) => {
+export const getActingOfficerRejectionConfirmationTemplate = (actingOfficerName, applicantName, fromDate, toDate) => {
   return getBaseEmailTemplate(
     "Leave Rejection Confirmed",
     `
       <h2>Action Confirmed</h2>
       <p>Dear ${actingOfficerName},</p>
-      <p>You have successfully <span style="color: red; font-weight: bold;">Reject</span> the leave request submitted by <strong>${applicantName}</strong>.</p>
+      <p>You have successfully <span style="color: red; font-weight: bold;">Reject</span> the leave request submitted by <strong>${applicantName}</strong> for the period ${formatRange(fromDate, toDate)}.</p>
       <p>The applicant has been notified of your decision.</p>
     `
   );
 };
 
-export const getActingOfficerApprovalApplicantTemplate = (userName, actingOfficerName, statusUrl) => {
+export const getActingOfficerApprovalApplicantTemplate = (userName, actingOfficerName, statusUrl, fromDate, toDate) => {
   return getBaseEmailTemplate(
-    "Leave Application Approved",
+    "Leave Application Approved by Acting Officer",
     `
-      <h2>Application Approved</h2>
+      <h2>Application Approved by Acting Officer</h2>
       <p>Dear ${userName},</p>
-      <p>Your leave request has been <span style="color: green; font-weight: bold;">Approved</span> by your Acting Officer, <strong>${actingOfficerName}</strong>.</p>
+      <p>Your leave request for the period ${formatRange(fromDate, toDate)} has been <span style="color: green; font-weight: bold;">Approved</span> by your Acting Officer, <strong>${actingOfficerName}</strong>.</p>
       <p>It has now been forwarded to your Department Head for final approval. You will receive another notification once a final decision is made.</p>
       <div style="text-align: center; margin-top: 30px;">
         <a href="${statusUrl}" style="background-color: ${siteConfig.colors.primary}; color: white; padding: 12px 25px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block;">Check Status</a>
@@ -131,19 +134,19 @@ export const getActingOfficerApprovalApplicantTemplate = (userName, actingOffice
   );
 };
 
-export const getActingOfficerApprovalConfirmationTemplate = (actingOfficerName, applicantName) => {
+export const getActingOfficerApprovalConfirmationTemplate = (actingOfficerName, applicantName, fromDate, toDate) => {
   return getBaseEmailTemplate(
     "Approve Leave Acting Request Confirmed",
     `
       <h2>Action Confirmed</h2>
       <p>Dear ${actingOfficerName},</p>
-      <p>You have successfully <span style="color: green; font-weight: bold;">Approve</span> the leave request submitted by <strong>${applicantName}</strong>.</p>
+      <p>You have successfully <span style="color: green; font-weight: bold;">Approve</span> the leave request submitted by <strong>${applicantName}</strong> for the period ${formatRange(fromDate, toDate)}.</p>
       <p>The request has been forwarded to the Department Head for final approval.</p>
     `
   );
 };
 
-export const getLeaveFinalDecisionTemplate = (userName, status, statusUrl, reviewerRole = "Department Head", rejectionReason = null) => {
+export const getLeaveFinalDecisionTemplate = (userName, status, statusUrl, fromDate, toDate, reviewerRole = "Department Head", rejectionReason = null) => {
   const statusHtml = status === 'approved' 
     ? '<span style="color: green; font-weight: bold;">APPROVED</span>'
     : '<span style="color: red; font-weight: bold;">REJECTED</span>';
@@ -163,7 +166,7 @@ export const getLeaveFinalDecisionTemplate = (userName, status, statusUrl, revie
     `
       <h2>Application Status Update</h2>
       <p>Dear ${userName},</p>
-      <p>Your recent leave request has been marked as ${statusHtml} by your <strong>${reviewerRole}</strong>.</p>
+      <p>Your leave request for the period ${formatRange(fromDate, toDate)} has been marked as ${statusHtml} by your <strong>${reviewerRole}</strong>.</p>
       ${reasonHtml}
       <p style="margin-top: 25px;">Log in to the institutional portal to view the details.</p>
       <div style="text-align: center; margin-top: 30px;">
@@ -172,7 +175,7 @@ export const getLeaveFinalDecisionTemplate = (userName, status, statusUrl, revie
     `
   );
 };
-export const getLeaveFinalDecisionConfirmationTemplate = (reviewerName, applicantName, status, rejectionReason = null) => {
+export const getLeaveFinalDecisionConfirmationTemplate = (reviewerName, applicantName, status, fromDate, toDate, rejectionReason = null) => {
   const statusHtml = status === 'approved' 
     ? '<span style="color: green; font-weight: bold;">APPROVED</span>'
     : '<span style="color: red; font-weight: bold;">REJECTED</span>';
@@ -187,7 +190,7 @@ export const getLeaveFinalDecisionConfirmationTemplate = (reviewerName, applican
     `
       <h2>Final Decision Processed</h2>
       <p>Dear ${reviewerName},</p>
-      <p>The leave application submitted by <strong>${applicantName}</strong> has been finalized as ${statusHtml}.</p>
+      <p>The leave application submitted by <strong>${applicantName}</strong> for the period ${formatRange(fromDate, toDate)} has been finalized as ${statusHtml}.</p>
       ${reasonHtml}
       <p>The applicant has been notified of this final decision.</p>
     `
