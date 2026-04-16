@@ -149,6 +149,17 @@ const userSchema = new mongoose.Schema(
         annualBalance: { type: Number, default: 45 }
       }
     ],
+
+    // Account Status
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active",
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
