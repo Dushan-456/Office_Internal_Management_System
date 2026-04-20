@@ -27,7 +27,7 @@ services:
     environment:
       - PORT=5000
       - MONGODB_URI=mongodb://db:27017/office_management
-      - FRONTEND_URL=http://localhost
+      - FRONTEND_URL=http://localhost:3001
       - NODE_ENV=production
     depends_on:
       - db
