@@ -51,10 +51,10 @@ const corsOptions = {
 server.use(cors(corsOptions));
 
 // Middleware to parse JSON request bodies
-server.use(express.json());
+server.use(express.json({ limit: "50mb" }));
 
 // Middleware to parse URL-encoded request bodies
-server.use(express.urlencoded({ extended: true }));
+server.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Middleware to use cookies
 server.use(cookieParser());
