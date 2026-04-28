@@ -21,7 +21,7 @@ services:
     container_name: oims-backend
     restart: always
     ports:
-      - "5000:5000"
+      - "5001:5000"
     env_file:
       - ./OIMS Backend/.env
     environment:
