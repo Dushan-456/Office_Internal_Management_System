@@ -40,8 +40,8 @@ services:
       context: ./OIMS Frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:5000/api/v1
-        - VITE_ASSET_URL=http://localhost:5000
+        - VITE_API_URL=http://localhost:5001/api/v1
+        - VITE_ASSET_URL=http://localhost:5001
     container_name: oims-frontend
     restart: always
     ports:
