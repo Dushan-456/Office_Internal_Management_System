@@ -27,7 +27,7 @@ services:
     environment:
       - PORT=5000
       - MONGODB_URI=mongodb://db:27017/office_management
-      - FRONTEND_URL=http://localhost:3001
+      - FRONTEND_URL=http://192.168.112.199:3001
       - NODE_ENV=production
     depends_on:
       - db
@@ -40,8 +40,8 @@ services:
       context: ./OIMS Frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:5001/api/v1
-        - VITE_ASSET_URL=http://localhost:5001
+        - VITE_API_URL=http://192.168.112.199:5001/api/v1
+        - VITE_ASSET_URL=http://192.168.112.199:5001
     container_name: oims-frontend
     restart: always
     ports:
