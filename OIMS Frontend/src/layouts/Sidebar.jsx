@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import useThemeStore from '../store/useThemeStore';
 import { siteConfig } from '../config/siteConfig';
 import { leaveApi } from '../api/leaveApi';
 import {
@@ -78,10 +79,10 @@ const Sidebar = ({ mobileOpen, onClose }) => {
   }, [user, isAdmin, isTopAdmin, isDeptHead, location.pathname]); // Re-fetch occasionally or on route change
 
   const navItemStyle = (isActive) => ({
-    borderRadius: '16px',
+    borderRadius: '12px',
     mx: 1.5,
-    mb: 1.5,
-    py: 1.5,
+    mb: 0.6,
+    py: 1,
     transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
     position: 'relative',
     bgcolor: isActive ? `${siteConfig.colors.primary}18` : 'transparent',
@@ -144,29 +145,41 @@ const Sidebar = ({ mobileOpen, onClose }) => {
     }
   ];
 
+  const { isDarkMode } = useThemeStore();
+
   const drawerContent = (
     <Box className="glass-sidebar h-full flex flex-col overflow-x-hidden">
-      {/* Logo Section */}
-      <Toolbar className="px-6 py-8 flex flex-col items-start gap-4 h-auto">
-        <Box className="flex items-center gap-3">
-          <motion.img 
-            src={siteConfig.logo} 
+      {/* Branding Section */}
+      <Box 
+        sx={{ 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 10, 
+          bgcolor: 'var(--glass-bg)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--glass-border)',
+        }}
+        className="px-3 pt-2 pb-6 flex flex-col items-start gap-3 h-auto"
+      >
+        <Box>
+          <img 
+            src={isDarkMode ? siteConfig['dark-logo2'] : siteConfig['light-logo2']} 
             alt="Logo" 
-            className="w-10 h-10 rounded-xl shadow-lg"
-            whileHover={{ rotate: 5, scale: 1.05 }}
+            className="h-10 w-auto object-contain" 
           />
-          <Box>
-            <Typography variant="h6" className="font-extrabold leading-none tracking-tight" sx={{ color: 'var(--text-heading)' }}>
-              {siteConfig.name.split(' ')[0]} <span style={{ color: siteConfig.colors.primary }}>{siteConfig.name.split(' ')[1]}</span>
-            </Typography>
-            <Typography variant="caption" className="text-slate-400 font-bold uppercase tracking-widest mt-1 block">
-              MANAGEMENT SYSTEM
-            </Typography>
-          </Box>
         </Box>
-      </Toolbar>
+        
+        <Box>
+          <Typography variant="h5" className="font-extrabold leading-none tracking-tight" sx={{ color: 'var(--text-heading)', mb: 0.5 }}>
+            {siteConfig.name.split(' ')[0]} <span style={{ color: siteConfig.colors.primary }}>{siteConfig.name.split(' ')[1]}</span>
+          </Typography>
+          <Typography variant="caption" className="text-slate-400 font-bold uppercase tracking-widest block">
+            MANAGEMENT SYSTEM
+          </Typography>
+        </Box>
+      </Box>
 
-      <Box className="flex-1 mt-4">
+      <Box className="flex-1 mt-2">
         {menuGroups.map((group, gIdx) => {
           const visibleItems = group.items.filter(item => item.show);
           if (visibleItems.length === 0) return null;
@@ -190,7 +203,7 @@ const Sidebar = ({ mobileOpen, onClose }) => {
                 {group.title}
               </Typography>
 
-              <List disablePadding>
+              <List disablePadding sx={{ mt: 0.5 }}>
                 {visibleItems.map((item) => {
                   const isActive = location.pathname === item.path;
                     
