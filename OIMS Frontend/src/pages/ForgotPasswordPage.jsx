@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { forgotPassword } from '../api/employeeApi';
+import useThemeStore from '../store/useThemeStore';
 import { siteConfig } from '../config/siteConfig';
 import { 
   Box, 
@@ -21,6 +22,7 @@ import { motion } from 'framer-motion';
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
+  const { isDarkMode } = useThemeStore();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -72,7 +74,7 @@ const ForgotPasswordPage = () => {
               className="mb-6 p-1 rounded-2xl bg-white dark:bg-slate-800 shadow-xl"
             >
               <img
-                src={siteConfig.logo}
+                src={isDarkMode ? siteConfig['dark-logo1'] : siteConfig['light-logo1']}
                 className="w-16 h-16 rounded-2xl"
                 alt="Logo"
               />
