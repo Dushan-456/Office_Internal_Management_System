@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
+import useThemeStore from '../store/useThemeStore';
 import { siteConfig } from '../config/siteConfig';
 import { 
   Box, 
@@ -23,6 +24,7 @@ import { motion } from 'framer-motion';
 
 const LoginPage = () => {
   const { login, isAuthenticated, isLoading, error } = useAuthStore();
+  const { isDarkMode } = useThemeStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -75,7 +77,7 @@ const LoginPage = () => {
               className="mb-6 p-1 rounded-2xl bg-white dark:bg-slate-800 shadow-xl"
             >
               <img
-                src={siteConfig.logo}
+                src={isDarkMode ? siteConfig['dark-logo1'] : siteConfig['light-logo1']}
                 className="w-16 h-16 rounded-2xl"
                 alt="Logo"
               />
