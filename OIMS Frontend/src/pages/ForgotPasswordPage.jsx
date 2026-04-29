@@ -69,13 +69,12 @@ const ForgotPasswordPage = () => {
 
           <Box className="flex flex-col items-center mb-10 relative z-10">
             <motion.div
-              whileHover={{ rotate: -10, scale: 1.1 }}
               className="mb-6 p-1 rounded-2xl bg-white dark:bg-slate-800 shadow-xl"
             >
-              <Avatar 
-                src={siteConfig.logo} 
-                className="w-16 h-16 rounded-2xl" 
-                variant="rounded"
+              <img
+                src={siteConfig.logo}
+                className="w-16 h-16 rounded-2xl"
+                alt="Logo"
               />
             </motion.div>
             <Typography variant="h4" className="font-extrabold tracking-tight text-center" sx={{ color: 'var(--text-heading)' }}>
