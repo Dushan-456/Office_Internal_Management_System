@@ -56,46 +56,67 @@ const LoginPage = () => {
         transition={{ duration: 0.5 }}
         className="w-full max-w-[440px]"
       >
-        <Paper 
-          elevation={0} 
+        <Paper
+          elevation={0}
           className="glass-card p-10 rounded-[2.5rem] relative overflow-hidden"
         >
           {/* Decorative Circles */}
-          <Box className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl" sx={{ bgcolor: `${siteConfig.colors.primary}20` }} />
-          <Box className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-3xl" sx={{ bgcolor: `${siteConfig.colors.secondary}20` }} />
+          <Box
+            className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl"
+            sx={{ bgcolor: `${siteConfig.colors.primary}20` }}
+          />
+          <Box
+            className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-3xl"
+            sx={{ bgcolor: `${siteConfig.colors.secondary}20` }}
+          />
 
           <Box className="flex flex-col items-center mb-10 relative z-10">
             <motion.div
-              whileHover={{ rotate: 10, scale: 1.1 }}
               className="mb-6 p-1 rounded-2xl bg-white dark:bg-slate-800 shadow-xl"
             >
-              <Avatar 
-                src={siteConfig.logo} 
-                className="w-16 h-16 rounded-2xl" 
-                variant="rounded"
+              <img
+                src={siteConfig.logo}
+                className="w-16 h-16 rounded-2xl"
+                alt="Logo"
               />
             </motion.div>
-            <Typography variant="h4" className="font-extrabold tracking-tight text-center" sx={{ color: 'var(--text-heading)' }}>
-              Welcome to <span style={{ color: siteConfig.colors.primary }}>OIMS</span>
+            <Typography
+              variant="h4"
+              className="font-extrabold tracking-tight text-center"
+              sx={{ color: "var(--text-heading)" }}
+            >
+              Welcome to{" "}<br/>
+              <span style={{ color: siteConfig.colors.primary }}>
+                {siteConfig.name}
+              </span>
             </Typography>
-            <Typography variant="body2" className="text-slate-500 mt-2 font-medium">
+            <Typography
+              variant="body2"
+              className="text-slate-500 mt-2 font-medium"
+            >
               {siteConfig.motto}
             </Typography>
           </Box>
 
           {(error || localErr) && (
-            <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-              <Alert 
-                severity="error" 
+            <motion.div
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+            >
+              <Alert
+                severity="error"
                 className="mb-6 rounded-2xl border-none shadow-sm"
-                sx={{ bgcolor: '#fef2f2', color: '#991b1b', fontWeight: 600 }}
+                sx={{ bgcolor: "#fef2f2", color: "#991b1b", fontWeight: 600 }}
               >
                 {error || localErr}
               </Alert>
             </motion.div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative z-10">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-5 relative z-10"
+          >
             <TextField
               label="Email Address"
               variant="outlined"
@@ -107,17 +128,19 @@ const LoginPage = () => {
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <MailOutlineIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                      <MailOutlineIcon
+                        sx={{ color: "#94a3b8", fontSize: 20 }}
+                      />
                     </InputAdornment>
                   ),
-                  sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' }
-                }
+                  sx: { borderRadius: "15px", bgcolor: "var(--input-bg)" },
+                },
               }}
             />
 
             <TextField
               label="Password"
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               variant="outlined"
               fullWidth
               value={password}
@@ -127,7 +150,7 @@ const LoginPage = () => {
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <KeyIcon sx={{ color: '#94a3b8', fontSize: 20 }} />
+                      <KeyIcon sx={{ color: "#94a3b8", fontSize: 20 }} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -137,27 +160,34 @@ const LoginPage = () => {
                         onClick={() => setShowPassword(!showPassword)}
                         onMouseDown={(e) => e.preventDefault()}
                         edge="end"
-                        sx={{ color: '#94a3b8' }}
+                        sx={{ color: "#94a3b8" }}
                       >
-                        {showPassword ? <VisibilityOff size={20} /> : <Visibility size={20} />}
+                        {showPassword ? (
+                          <VisibilityOff size={20} />
+                        ) : (
+                          <Visibility size={20} />
+                        )}
                       </IconButton>
                     </InputAdornment>
                   ),
-                  sx: { borderRadius: '15px', bgcolor: 'var(--input-bg)' }
-                }
+                  sx: { borderRadius: "15px", bgcolor: "var(--input-bg)" },
+                },
               }}
             />
 
             <Box className="flex justify-end -mt-2">
-              <Button 
-                onClick={() => navigate('/forgot-password')}
-                variant="text" 
+              <Button
+                onClick={() => navigate("/forgot-password")}
+                variant="text"
                 size="small"
-                sx={{ 
-                  textTransform: 'none', 
-                  color: siteConfig.colors.primary, 
+                sx={{
+                  textTransform: "none",
+                  color: siteConfig.colors.primary,
                   fontWeight: 700,
-                  '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
+                  "&:hover": {
+                    bgcolor: "transparent",
+                    textDecoration: "underline",
+                  },
                 }}
               >
                 Forgot Password?
@@ -171,21 +201,28 @@ const LoginPage = () => {
               fullWidth
               disabled={isLoading}
               className="btn-premium mt-4"
-              sx={{ 
-                py: 1.8, 
-                borderRadius: '15px', 
-                textTransform: 'none', 
-                fontSize: '1rem', 
-                fontWeight: 700 
+              sx={{
+                py: 1.8,
+                borderRadius: "15px",
+                textTransform: "none",
+                fontSize: "1rem",
+                fontWeight: 700,
               }}
             >
-              {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Sign In Now'}
+              {isLoading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Sign In Now"
+              )}
             </Button>
           </form>
 
           <Box className="mt-8 text-center relative z-10">
-            <Typography variant="caption" className="text-slate-400 font-medium">
-              Secured Internal Management Portal • Est. 2024
+            <Typography
+              variant="caption"
+              className="text-slate-400 font-medium"
+            >
+              Secured Internal Management Portal
             </Typography>
           </Box>
         </Paper>
