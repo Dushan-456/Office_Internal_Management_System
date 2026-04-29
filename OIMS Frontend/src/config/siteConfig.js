@@ -1,8 +1,17 @@
+import dark_logo1 from "../assets/images/logo1.png";
+import light_logo1 from "../assets/images/logo1.png";
+import dark_logo2 from "../assets/images/dark-logo2.png";
+import light_logo2 from "../assets/images/light-logo2.png";
+
 export const siteConfig = {
   name: "PGIM OIMS Portal",
   motto: "Advanced PostGraduate Institute of Management",
-  logo: "src/assets/images/logo1.png",
-  favicon: "src/assets/images/logo1.png",
+  logo: light_logo1, // Fallback or main logo
+  "light-logo1": light_logo1,
+  "dark-logo1": dark_logo1,
+  "light-logo2": light_logo2,
+  "dark-logo2": dark_logo2,
+  favicon: light_logo1,
   coverImage:
     "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000",
   colors: {
