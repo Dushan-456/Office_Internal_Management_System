@@ -6,7 +6,7 @@ import LeaveRequest from "../models/LeaveRequest.mjs";
 
 const DEPARTMENTS_TO_SEED = ["Academic", "Finance", "Computer"];
 const EMPLOYEES_PER_DEPT = 5;
-const LEAVES_PER_EMPLOYEE = 10;
+const LEAVES_PER_EMPLOYEE = 15;
 
 // Production Env
 // # 2. Start the services (if not already running)
@@ -99,31 +99,45 @@ async function seedData() {
       const actingOfficer = deptEmployees[0] || head; // Fallback to head if no other employee
 
       for (let k = 0; k < LEAVES_PER_EMPLOYEE; k++) {
-        // Determine status: 3 approved, 3 rejected, 4 pending (2 acting, 2 approval)
         let status;
         let actingOfficerStatus = "approved";
         let deptHeadStatus = "pending";
+        let fromDate = new Date();
 
-        if (k < 3) {
-          status = "approved";
-          actingOfficerStatus = "approved";
-          deptHeadStatus = "approved";
-        } else if (k < 6) {
-          status = "rejected";
-          actingOfficerStatus = "approved";
-          deptHeadStatus = "rejected";
-        } else if (k < 8) {
-          status = "pending_acting";
-          actingOfficerStatus = "pending";
-          deptHeadStatus = "pending";
+        if (k < 10) {
+          // Historical Leaves (Mix of Statuses)
+          if (k < 3) {
+            status = "approved";
+            actingOfficerStatus = "approved";
+            deptHeadStatus = "approved";
+          } else if (k < 6) {
+            status = "rejected";
+            actingOfficerStatus = "approved";
+            deptHeadStatus = "rejected";
+          } else if (k < 8) {
+            status = "pending_acting";
+            actingOfficerStatus = "pending";
+            deptHeadStatus = "pending";
+          } else {
+            status = "pending_approval";
+            actingOfficerStatus = "approved";
+            deptHeadStatus = "pending";
+          }
+          fromDate.setDate(fromDate.getDate() + (k * 5) - 45); 
         } else {
-          status = "pending_approval";
-          actingOfficerStatus = "approved";
-          deptHeadStatus = "pending";
+          // Upcoming Leaves (Future Dates)
+          if (k < 12) {
+            status = "approved";
+            actingOfficerStatus = "approved";
+            deptHeadStatus = "approved";
+          } else {
+            status = Math.random() > 0.5 ? "pending_approval" : "pending_acting";
+            actingOfficerStatus = status === "pending_approval" ? "approved" : "pending";
+            deptHeadStatus = "pending";
+          }
+          fromDate.setDate(fromDate.getDate() + ((k - 10) * 7) + 5); // 5, 12, 19, 26, 33 days in future
         }
 
-        const fromDate = new Date();
-        fromDate.setDate(fromDate.getDate() + (k * 5) - 30); // Spread out leaves
         const toDate = new Date(fromDate);
         toDate.setDate(toDate.getDate() + 2);
 
@@ -137,15 +151,15 @@ async function seedData() {
           },
           totalDays: 3,
           addressWhileOnLeave: "123 Sample Street, City",
-          reason: `Personal leave reason ${k + 1}`,
+          reason: k < 10 ? `Past leave reason ${k + 1}` : `Upcoming leave request ${k - 9}`,
           actingOfficerId: actingOfficer.id,
           approveOfficerId: head.id,
           status: status,
           actingOfficerStatus: actingOfficerStatus,
           deptHeadStatus: deptHeadStatus,
           rejectionReason: status === "rejected" ? "Requirements not met or overlapping duties." : null,
-          actingOfficerDecisionDate: status !== "pending_acting" ? new Date() : null,
-          deptHeadDecisionDate: (status === "approved" || status === "rejected") ? new Date() : null,
+          actingOfficerDecisionDate: (status !== "pending_acting" && k < 10) ? new Date() : (status === "approved" && k >= 10 ? new Date() : null),
+          deptHeadDecisionDate: ((status === "approved" || status === "rejected") && k < 10) ? new Date() : (status === "approved" && k >= 10 ? new Date() : null),
         });
       }
       console.log(`Created ${LEAVES_PER_EMPLOYEE} leaves for ${employee.email}`);
