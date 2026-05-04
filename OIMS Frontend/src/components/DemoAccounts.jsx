@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { motion } from 'framer-motion';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import ComputerIcon from '@mui/icons-material/Computer';
 import BadgeIcon from '@mui/icons-material/Badge';
@@ -17,11 +16,7 @@ const DemoAccounts = ({ onSelect }) => {
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
+    <Box className="w-full">
       <Box className="glass-card p-6 rounded-[2rem] border border-white/20">
         <Box className="flex items-center gap-2 mb-4">
           <ComputerIcon sx={{ color: siteConfig.colors.primary }} />
@@ -53,7 +48,7 @@ const DemoAccounts = ({ onSelect }) => {
           ))}
         </Box>
       </Box>
-    </motion.div>
+    </Box>
   );
 };
 
